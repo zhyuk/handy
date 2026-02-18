@@ -5,6 +5,8 @@ import OpenCamera from '@/components/OpenCamera';
 import GpsTest from '@/components/GpsTest';
 import { useEffect } from 'react';
 import { initPush } from '@/utils/push';
+import Push from '@/components/Push';
+import Map from '@/components/Map';
 
 
 const Index = () => {
@@ -69,8 +71,10 @@ const Index = () => {
       </section>
 
       <OpenCamera />
-
       <GpsTest />
+      <Push />
+      <Map />
+    
 
 
       {/* Menu Grid */}
