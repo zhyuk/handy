@@ -22,10 +22,10 @@ const Index = () => {
     },
     {
       icon: Calendar,
-      title: '일정 관리',
-      description: '근무 일정을 확인하세요',
-      path: '/schedule',
-      color: 'bg-status-open/10 text-status-open',
+      title: '로그인',
+      description: '로그인 페이지로 이동해요',
+      path: '/login',
+      color: 'bg-primary/10 text-primary',
     },
     {
       icon: FileText,

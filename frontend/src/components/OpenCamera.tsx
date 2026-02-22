@@ -23,7 +23,6 @@ export default function OpenCamera() {
         사진 찍기
       </button>
 
-      {/* 👇 여기 */}
       {imageUrl && (
         <img
           src={imageUrl}

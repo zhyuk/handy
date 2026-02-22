@@ -35,6 +35,7 @@ export default function MapPage() {
             // 가게 위치 가져오기
             const STORE = { lat: 37.51285, lng: 126.94203 };
             const storePos = new window.kakao.maps.LatLng(STORE.lat, STORE.lng);
+            const radius = 200;
 
             const map = new window.kakao.maps.Map(mapRef.current!, {
                 center: storePos,
@@ -52,7 +53,7 @@ export default function MapPage() {
             // 가게 반경 설정
             new window.kakao.maps.Circle({
                 center: storePos,
-                radius: 200,
+                radius: radius,
                 strokeWeight: 2,
                 strokeColor: '#75B8FA',
                 fillColor: '#CFE7FF',
