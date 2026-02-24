@@ -16,12 +16,13 @@ const Login = () => {
     const [errorMsg, setErrorMsg] = useState("");
 
 
-    const digits = phone.replace(/-/g, "");
+    const digits = phone.replace(/ /g, "");
     const hasInput = /^010\d{8}$/.test(digits) && password.length > 0;
 
     const handleLogin = async () => {
         try {
             if (hasInput) {
+                console.log("입력함");
                 const res = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: {
@@ -47,7 +48,7 @@ const Login = () => {
                 }
             }
         } catch (err) {
-            // console.error(err);
+            console.error(err);
             setErrorMsg(err);
             setError(true);
         }

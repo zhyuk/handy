@@ -68,6 +68,8 @@
     --success-foreground: 0 0% 100%;
     --border: 0 0% 20%;
     --input: 0 0% 20%;
+    --input-focus: 227 75% 55%;
+    --input-error: 0 80% 55%;
     --ring: 225 73% 57%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;

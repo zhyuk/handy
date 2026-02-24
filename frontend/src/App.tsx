@@ -11,8 +11,11 @@ import EmployeeEdit from "./pages/EmployeeEdit";
 import NotFound from "./pages/NotFound";
 import Signup from "./pages/Signup";
 import ScrollToTop from "./utils/scrollToTop"
-import VerifyCode from "./pages/VerifyCode";
-import PasswordSetup from "./components/PasswordSetup";
+import CodeVerifyPage from "./pages/CodeVerify";
+import PasswordPage from "./pages/PasswordPage";
+import ProfileInfoPage from "./pages/ProfileInfoPage";
+import ProfilePhotoPage from "./pages/ProfilePhotoPage";
+import SignupCompletePage from "./pages/SignupCompletePage";
 
 const queryClient = new QueryClient();
 
@@ -25,11 +28,15 @@ const App = () => (
         <ScrollToTop />
         <div className="max-w-lg mx-auto bg-background min-h-screen relative app-root">
           <Routes>
-            <Route path="/" element={<Index />} />
+            {/* <Route path="/" element={<Index />} /> */}
+            <Route path="/" element={<Login />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
-            <Route path="/verify-code" element={<VerifyCode />} />
-            <Route path="/signup/setup" element={<PasswordSetup />} />
+            <Route path="/verify" element={<CodeVerifyPage />} />
+            <Route path="/password" element={<PasswordPage />} />
+            <Route path="/profile-info" element={<ProfileInfoPage />} />
+            <Route path="/profile-photo" element={<ProfilePhotoPage />} />
+            <Route path="/signup-complete" element={<SignupCompletePage />} />
             <Route path="/employees" element={<EmployeeList />} />
             <Route path="/employee/:id" element={<EmployeeDetail />} />
             <Route path="/employee/:id/edit" element={<EmployeeEdit />} />

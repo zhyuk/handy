@@ -1,17 +1,15 @@
-export type LoginRequest = { phone: string; password: string; };
-
-export interface SignupForm {
+// === 로그인 검증 타입 ===
+export type LoginRequest = {
     phone: string;
-    name: string;
-    birth: string;
-    gender: string;
     password: string;
 }
 
-export type Step = 1 | 2 | 3 | 4 | 5;
-
-export interface Props {
-    setStep: (step: Step) => void;
-    form: SignupForm;
-    setForm: React.Dispatch<React.SetStateAction<SignupForm>>;
+// === 회원가입 타입 ===
+export type SignupForm = {
+    phone: string;
+    password: string;
+    name: string;
+    birth: string;
+    gender: string;
+    imageUrl?: string;
 }

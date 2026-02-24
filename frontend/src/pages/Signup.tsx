@@ -1,95 +1,111 @@
-import { useState } from "react";
-import { ChevronLeft, AlertCircle } from "lucide-react";
-import { formatPhone } from "@/utils/valid";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { AlertCircle } from "lucide-react";
+import PageLayout from "@/components/PageLayout";
+import { formatPhone, validatePhone } from "@/utils/valid";
 
-const Signup = () => {
-    const navigate = useNavigate();
-    const [phone, setPhone] = useState("");
-    const [error, setError] = useState(false);
-    const [errorMsg, setErrorMsg] = useState("");
+const PhoneVerifyPage = () => {
+  const navigate = useNavigate();
+  const [phone, setPhone] = useState("");
+  const [touched, setTouched] = useState(false);
+  const isValid = validatePhone(phone);
+  const [errorMsg, setErrorMsg] = useState("");
+  const showError = (touched && phone.length >= 10 && !isValid) || errorMsg;
 
-    const digits = phone.replace(/\s/g, "");
-    const isValidPhone = /^010\d{8}$/.test(digits);
-    const hasInput = digits.length > 0;
+  const handleChange = (e) => {
+    const formatted = formatPhone(e.target.value);
+    setPhone(formatted);
+    setTouched(true);
 
-    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const raw = e.target.value.replace(/[^0-9]/g, "").slice(0, 11);
-        setPhone(formatPhone(raw));
-        setError(false);
-        setErrorMsg("");
-    };
+    const valid = validatePhone(formatted);
 
-    const handleSubmit = () => {
-        if (!hasInput) return;
+    if (!valid && formatted.length >= 10) {
+      setErrorMsg("올바르지 않은 휴대폰 번호 형식이에요.");
+    } else {
+      setErrorMsg("");
+    }
+  };
 
-        if (!isValidPhone) {
-            setError(true);
-            setErrorMsg("올바르지 않은 휴대폰 번호 형식이에요.");
-            return;
-        }
+  const handleSubmit = async () => {
+    if (!isValid) {
+      setErrorMsg("올바르지 않은 휴대폰 번호 형식이에요.");
+      return;
+    }
+    const digits = phone.replace(/\D/g, "");
 
-        // Valid phone - navigate to verification page
-        navigate("/verify-code", { state: { phone: digits } });
-    };
+    try {
+      const res = await fetch("/api/auth/signup/code/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ phone: digits })
+      });
 
-    return (
-        <div className="flex flex-col min-h-screen bg-background px-5 pt-14">
-            {/* Back button */}
-            <button
-                onClick={() => navigate(-1)}
-                className="mb-6 -ml-1 text-primary w-fit"
-            >
-                <ChevronLeft className="w-7 h-7" strokeWidth={2.5} />
-            </button>
+      const data = await res.json();
 
-            {/* Header */}
-            <h1 className="text-[26px] font-bold leading-tight text-foreground">
-                회원가입을 위해
-                <br />
-                본인 인증을 해주세요
-            </h1>
-            <p className="mt-2 text-muted-foreground text-[15px]">
-                휴대폰 번호를 아이디로 사용해요
-            </p>
+      if (!res.ok) {
+        setErrorMsg(data.detail || "요청 처리 중 문제가 발생했어요.");
+        return;
+      }
 
-            {/* Form */}
-            <div className="mt-8">
-                <label className="text-[15px] font-medium text-foreground">
-                    휴대폰 번호 <span className="text-destructive">*</span>
-                </label>
+      navigate("/verify", { state: { phone: digits } });
 
-                <input
-                    type="tel"
-                    inputMode="numeric"
-                    placeholder="숫자만 입력"
-                    value={phone}
-                    onChange={handlePhoneChange}
-                    className={`mt-2 w-full h-[52px] rounded-xl border-2 bg-background px-4 text-[16px] outline-none transition-colors placeholder:text-muted-foreground ${error ? "border-destructive" : "border-input focus:border-primary"
-                        }`}
-                />
+    } catch (err) {
+      console.error(err);
+      setErrorMsg("네트워크 오류가 발생했어요. 다시 시도해주세요.");
+    }
 
-                {error && (
-                    <div className="flex items-center gap-1.5 mt-2">
-                        <AlertCircle className="w-4 h-4 text-destructive flex-shrink-0" />
-                        <span className="text-destructive text-[13px]">{errorMsg}</span>
-                    </div>
-                )}
-            </div>
 
-            {/* Submit Button */}
-            <button
-                onClick={handleSubmit}
-                disabled={!hasInput}
-                className={`mt-6 w-full h-[54px] rounded-xl text-[16px] font-semibold transition-colors ${isValidPhone && hasInput
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground cursor-not-allowed"
-                    }`}
-            >
-                인증번호 문자 보내기
-            </button>
-        </div>
-    );
+  };
+
+  return (
+    <PageLayout
+      title={
+        <>
+          <h1 className="text-[26px] font-bold leading-tight text-foreground">
+            회원가입을 위해
+          </h1>
+          <h1 className="text-[26px] font-bold leading-tight text-foreground">
+            본인 인증을 해주세요
+          </h1>
+        </>
+      }
+      subtitle="휴대폰 번호를 아이디로 사용해요"
+      bottom={
+        <button
+          disabled={!isValid}
+          onClick={handleSubmit}
+          className={`w-full rounded-2xl py-4 text-[17px] font-semibold transition-colors ${isValid
+            ? "bg-primary text-primary-foreground"
+            : "bg-secondary text-secondary-foreground"
+            }`}
+        >
+          인증번호 문자 보내기
+        </button>
+      }
+    >
+      <div>
+        <label className="text-[15px] font-medium text-foreground">
+          휴대폰 번호 <span className="text-destructive">*</span>
+        </label>
+        <input
+          type="tel"
+          value={phone}
+          onChange={handleChange}
+          placeholder="숫자만 입력"
+          className={`mt-2 w-full rounded-xl border bg-background px-4 py-3.5 text-[16px] outline-none transition-colors ${showError ? "border-destructive" : "border-input"
+            }`}
+        />
+        {showError && (
+          <div className="mt-2 flex items-center gap-1.5 text-destructive">
+            <AlertCircle size={16} />
+            <span className="text-[13px]">{errorMsg}</span>
+          </div>
+        )}
+      </div>
+    </PageLayout>
+  );
 };
 
-export default Signup;
+export default PhoneVerifyPage;
