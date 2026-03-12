@@ -22,7 +22,6 @@ const Login = () => {
     const handleLogin = async () => {
         try {
             if (hasInput) {
-                console.log("입력함");
                 const res = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: {
@@ -44,7 +43,7 @@ const Login = () => {
 
                 if (res.ok) {
                     setError(false);
-                    navigate("/");
+                    navigate("/test");
                 }
             }
         } catch (err) {
@@ -74,16 +73,18 @@ const Login = () => {
         setError(false);
     };
 
-
-    const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // 비밀번호 변경
+    const handlePasswordChange = (e) => {
         setPassword(e.target.value);
         setError(false);
     };
 
+    // 카카오 로그인 
     const LoadKakaoLogin = () => {
         window.location.href = "http://localhost:8000/api/auth/kakao/login";
     };
 
+    // 구글 로그인
     const LoadGoogleLogin = () => {
         window.location.href = "http://localhost:8000/api/auth/google/login";
     }

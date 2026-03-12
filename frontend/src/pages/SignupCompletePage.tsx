@@ -1,8 +1,9 @@
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { CheckCircle } from "lucide-react";
 
 const SignupCompletePage = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const state = location.state as any;
   const name = state?.name || "회원";
 
@@ -27,7 +28,7 @@ const SignupCompletePage = () => {
       </div>
 
       <div className="px-5 pb-8">
-        <button className="w-full rounded-2xl bg-primary py-4 text-[17px] font-semibold text-primary-foreground">
+        <button onClick={() => navigate("/onboarding/member-type")} className="w-full rounded-2xl bg-primary py-4 text-[17px] font-semibold text-primary-foreground">
           회원 유형 선택하기
         </button>
       </div>

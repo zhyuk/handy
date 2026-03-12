@@ -10,6 +10,7 @@ const CodeVerifyPage = () => {
   const location = useLocation();
   const phoneDigits = (location.state as any)?.phone || "";
   const formattedPhone = formatPhone(phoneDigits);
+  const type = location.state?.type || "normal";
 
   const [code, setCode] = useState("");
   const [timer, setTimer] = useState(180);
@@ -18,6 +19,8 @@ const CodeVerifyPage = () => {
   const [sendCount, setSendCount] = useState(1);
   const [resendLimitError, setResendLimitError] = useState(false);
   const [toast, setToast] = useState<string | null>("인증번호를 발송 했어요.");
+
+  console.log(type);
 
   // Timer
   useEffect(() => {
@@ -86,7 +89,13 @@ const CodeVerifyPage = () => {
 
   const handleNext = () => {
     if (!isVerified) return;
-    navigate("/password", { state: { phone: phoneDigits } });
+
+    if (type == "normal") {
+      navigate("/password", { state: { phone: phoneDigits } });
+    }
+    else {
+      navigate("/profile-info", { state: { phone: phoneDigits, password: "", type } });
+    }
   };
 
   return (

@@ -12,4 +12,5 @@ export type SignupForm = {
     birth: string;
     gender: string;
     imageUrl?: string;
+    type: string;
 }

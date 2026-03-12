@@ -12,9 +12,11 @@ const ProfilePhotoPage = () => {
   const name = state?.name || "";
   const birthdate = state?.birthdate || "";
   const gender = state?.gender || "";
+  const type = state?.type || "normal";
 
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -25,17 +27,15 @@ const ProfilePhotoPage = () => {
     // Validate size (5MB)
     if (file.size > 5 * 1024 * 1024) return;
 
-    const url = "default.png"
-    setPhotoUrl(url);
+    // console.log(file.name);
+    setPhotoUrl(file.name);
+
+    const previewUrl = URL.createObjectURL(file);
+    setPreviewUrl(previewUrl);
   };
+
 
   const handleComplete = async () => {
-    navigate("/signup-complete", {
-      state: { phone, password, name, birthdate, gender, photoUrl },
-    });
-  };
-
-  const handleSkip = async () => {
     try {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
@@ -48,6 +48,44 @@ const ProfilePhotoPage = () => {
           name,
           birth: birthdate,
           gender,
+          imageUrl: photoUrl
+        })
+      });
+
+      if (res.ok) {
+        navigate("/signup-complete", {
+          state: { name },
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSkip = async () => {
+
+    console.log(phone)
+    console.log(password)
+    console.log(name)
+    console.log(birthdate)
+    console.log(gender)
+    console.log(photoUrl)
+    console.log(type)
+
+    try {
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          phone,
+          password: password || "",
+          name,
+          birth: birthdate,
+          gender,
+          imageUrl: photoUrl,
+          type
         })
       });
 
@@ -99,8 +137,8 @@ const ProfilePhotoPage = () => {
         {/* Avatar */}
         <div className="relative">
           <div className="h-48 w-48 rounded-full bg-muted flex items-center justify-center overflow-hidden">
-            {photoUrl ? (
-              <img src={photoUrl} alt="프로필" className="h-full w-full object-cover" />
+            {previewUrl ? (
+              <img src={previewUrl} alt="프로필" className="h-full w-full object-cover" />
             ) : (
               <User size={80} className="text-muted-foreground/50" />
             )}

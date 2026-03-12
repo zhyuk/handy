@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HashRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
+import Test from "./pages/Test";
 import Login from "./pages/Login";
 import EmployeeList from "./pages/EmployeeList";
 import EmployeeDetail from "./pages/EmployeeDetail";
@@ -16,6 +16,8 @@ import PasswordPage from "./pages/PasswordPage";
 import ProfileInfoPage from "./pages/ProfileInfoPage";
 import ProfilePhotoPage from "./pages/ProfilePhotoPage";
 import SignupCompletePage from "./pages/SignupCompletePage";
+import Index from "./pages/Index";
+import BusinessVerify from "./pages/Owner/BusinessVerify";
 
 const queryClient = new QueryClient();
 
@@ -28,15 +30,20 @@ const App = () => (
         <ScrollToTop />
         <div className="max-w-lg mx-auto bg-background min-h-screen relative app-root">
           <Routes>
-            {/* <Route path="/" element={<Index />} /> */}
+            <Route path="/test" element={<Test />} />
             <Route path="/" element={<Login />} />
-            <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/verify" element={<CodeVerifyPage />} />
             <Route path="/password" element={<PasswordPage />} />
             <Route path="/profile-info" element={<ProfileInfoPage />} />
             <Route path="/profile-photo" element={<ProfilePhotoPage />} />
             <Route path="/signup-complete" element={<SignupCompletePage />} />
+            <Route path="/onboarding/member-type" element={<Index />} />
+
+            {/* 사장유형 라우터 */}
+            <Route path="/owner/business-verify" element={<BusinessVerify />} />
+
+
             <Route path="/employees" element={<EmployeeList />} />
             <Route path="/employee/:id" element={<EmployeeDetail />} />
             <Route path="/employee/:id/edit" element={<EmployeeEdit />} />

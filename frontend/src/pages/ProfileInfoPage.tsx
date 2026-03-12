@@ -16,6 +16,7 @@ const ProfileInfoPage = () => {
   const state = location.state as any;
   const phone = state?.phone || "";
   const password = state?.password || "";
+  const type = location.state?.type || "normal";
 
   const [name, setName] = useState("");
   const [birthYear, setBirthYear] = useState<number | null>(null);
@@ -68,7 +69,7 @@ const ProfileInfoPage = () => {
     if (!allRequiredAgreed) return;
     setShowTermsSheet(false);
     navigate("/profile-photo", {
-      state: { phone, password, name, birthdate, gender },
+      state: { phone, password, name, birthdate, gender, type },
     });
   };
 

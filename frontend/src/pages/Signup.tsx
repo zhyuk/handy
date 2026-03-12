@@ -6,11 +6,15 @@ import { formatPhone, validatePhone } from "@/utils/valid";
 
 const PhoneVerifyPage = () => {
   const navigate = useNavigate();
+  const params = new URLSearchParams(window.location.search);
+  const type = params.get("type") || "normal";
   const [phone, setPhone] = useState("");
   const [touched, setTouched] = useState(false);
   const isValid = validatePhone(phone);
   const [errorMsg, setErrorMsg] = useState("");
   const showError = (touched && phone.length >= 10 && !isValid) || errorMsg;
+
+  console.log(type);
 
   const handleChange = (e) => {
     const formatted = formatPhone(e.target.value);
@@ -49,7 +53,7 @@ const PhoneVerifyPage = () => {
         return;
       }
 
-      navigate("/verify", { state: { phone: digits } });
+      navigate("/verify", { state: { phone: digits, type } });
 
     } catch (err) {
       console.error(err);
