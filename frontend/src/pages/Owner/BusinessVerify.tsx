@@ -1,31 +1,23 @@
 import { useState } from "react";
 import { ChevronLeft, CircleAlert, CircleCheck } from "lucide-react";
-
-// Mock data for demonstration
-const BUSINESS_DATA: Record<string, {
-    name: string;
-    address: string;
-    industry: string;
-    representative: string;
-    phone: string;
-}> = {
-    "1231212340": {
-        name: "메가커피 동작점",
-        address: "서울특별시 영등포구 도신로64길 10, 2층,3층(신길동)",
-        industry: "음식 / 카페",
-        representative: "김준서",
-        phone: "02 1234 1234",
-    },
-};
-
-type VerifyState = "idle" | "error" | "not-found" | "success";
-
-const SERVICE_KEY = import.meta.env.VITE_BUSINESS_API_KEY;
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const BusinessVerify = () => {
     const [rawDigits, setRawDigits] = useState("");
-    const [verifyState, setVerifyState] = useState<VerifyState>("idle");
-    const [businessInfo, setBusinessInfo] = useState<typeof BUSINESS_DATA[string] | null>(null);
+    const [isVerified, setIsVerified] = useState(false);
+    const [isError, setIsError] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+
+    // 매장정보 다루는 변수들
+    const [storeName, setStoreName] = useState("");
+    const [address, setAddress] = useState("");
+    const [addressDetail, setAddressDetail] = useState("");
+    const [businessType, setBusinessType] = useState("");
+    const [ownerName, setOwnerName] = useState("");
+    const [ownerPhone, setOwnerPhone] = useState("");
 
     // 사업자 번호 포매팅 함수
     const formatBusinessNumber = (digits: string) => {
@@ -37,59 +29,45 @@ const BusinessVerify = () => {
     const handleChange = (e) => {
         const onlyDigits = e.target.value.replace(/\D/g, "").slice(0, 10);
         setRawDigits(onlyDigits);
-        if (verifyState !== "idle") setVerifyState("idle");
-        setBusinessInfo(null);
     };
 
     const isComplete = rawDigits.length === 10;
     const isValidFormat = /^\d{10}$/.test(rawDigits);
 
     const handleVerify = async () => {
-        if (!isValidFormat) {
-            setVerifyState("error");
-            return;
-        }
+        if (!isValidFormat) return;
 
         try {
             const res = await fetch(`/api/owner/business/${rawDigits}`);
-
             if (!res.ok) throw new Error("Network response was not ok");
-
             const data = await res.json();
 
-            console.log(data);
-
-            // // Bizno API 응답 규격: result가 "1"일 때 정상 조회
-            // if (data.result === "1" && data.items && data.items.length > 0) {
-            //     const result = data.items[0];
-
-            //     setVerifyState("success");
-            //     setBusinessInfo({
-            //         name: result.company || "-",
-            //         // b_address가 실제 주소 필드인 경우가 많으므로 확인 필요
-            //         address: result.address || "-",
-            //         // Bizno 응답 필드에 맞게 매핑 (status: 영업상태 등)
-            //         industry: result.kind || "-",
-            //         representative: result.ceo || "-",
-            //         phone: result.tel || "-"
-            //     });
-            // } else {
-            //     // result가 "0"이거나 검색 결과가 없는 경우
-            //     setVerifyState("not-found");
-            // }
+            // 조회 성공
+            if (data.match_cnt === 1) {
+                setIsError(false);
+                setIsVerified(true);
+            } else {
+                setIsVerified(false);
+                setIsError(true);
+            }
 
         } catch (e) {
             console.error("API Error:", e);
-            setVerifyState("not-found");
         }
     };
 
-    const inputBorderClass =
-        verifyState === "error" || verifyState === "not-found"
-            ? "border-destructive ring-1 ring-destructive"
-            : verifyState === "success"
-                ? "border-success ring-1 ring-success"
-                : "border-input";
+    // 우편번호 조회 함수
+    const openPostcode = () => {
+        new window.kakao.Postcode({
+            oncomplete: function (data) {
+                setAddress(data.address);
+            },
+        }).open();
+    };
+
+    const handleSubmit = () => {
+
+    }
 
     return (
         <div className="min-h-screen bg-background flex flex-col max-w-md mx-auto">
@@ -121,26 +99,26 @@ const BusinessVerify = () => {
                     value={formatBusinessNumber(rawDigits)}
                     onChange={handleChange}
                     placeholder="사업자 번호 (숫자만 입력)"
-                    className={`w-full px-4 py-4 rounded-lg border bg-background text-foreground text-base outline-none transition-colors ${inputBorderClass} placeholder:text-muted-foreground/60`}
+                    className={`w-full px-4 py-4 rounded-lg border bg-background text-foreground text-base outline-none transition-colors placeholder:text-muted-foreground/60 ${isVerified
+                        ? "border-success ring-1 ring-success"
+                        : isError
+                            ? "border-destructive ring-1 ring-destructive"
+                            : "border-input"
+                        }`}
                 />
 
                 {/* Status messages */}
-                {verifyState === "error" && (
+                {isVerified && (
                     <div className="flex items-center gap-1.5 mt-2">
-                        <CircleAlert className="w-4 h-4 text-destructive" />
-                        <span className="text-sm text-destructive">올바르지 않은 사업자 번호 형식이에요.</span>
+                        <CircleCheck className="h-5 w-5 text-success" />
+                        <span className="text-sm text-success font-medium">조회되었어요</span>
                     </div>
                 )}
-                {verifyState === "not-found" && (
+
+                {isError && (
                     <div className="flex items-center gap-1.5 mt-2">
-                        <CircleAlert className="w-4 h-4 text-destructive" />
-                        <span className="text-sm text-destructive">조회되지 않는 사업자 번호에요.</span>
-                    </div>
-                )}
-                {verifyState === "success" && (
-                    <div className="flex items-center gap-1.5 mt-2">
-                        <CircleCheck className="w-4 h-4 text-success" />
-                        <span className="text-sm text-success">조회되었어요.</span>
+                        <CircleAlert className="h-5 w-5 text-destructive" />
+                        <span className="text-sm text-destructive font-medium">올바르지 않은 사업자 번호 형식이에요</span>
                     </div>
                 )}
 
@@ -156,38 +134,110 @@ const BusinessVerify = () => {
                     사업자 번호 조회하기
                 </button>
 
-                {/* Success info */}
-                {verifyState === "success" && businessInfo && (
+                {isVerified && (
                     <>
-                        <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
-                            * 사업자 번호 조회를 성공했어요.
-                            <br />
-                            &nbsp;&nbsp;아래 내용을 확인 후 사업자 등록증을 업로드해 주세요.
-                        </p>
+                        <div className="border-t border-border my-6" />
+                        <h2 className="text-lg font-bold text-foreground mb-6">매장 정보</h2>
 
-                        <div className="border-t border-border mt-6 pt-6 space-y-5">
-                            <InfoRow label="사업장명" value={businessInfo.name} />
-                            <InfoRow label="주소" value={businessInfo.address} />
-                            <InfoRow label="업종" value={businessInfo.industry} />
-                            <InfoRow label="대표자명" value={businessInfo.representative} />
-                            <InfoRow label="대표번호" value={businessInfo.phone} />
+                        <div className="space-y-5">
+                            <div>
+                                <Label className="text-sm text-muted-foreground mb-2 block">
+                                    매장명 <span className="text-destructive">*</span>
+                                </Label>
+                                <Input
+                                    value={storeName}
+                                    onChange={(e) => setStoreName(e.target.value)}
+                                    placeholder="매장명 입력"
+                                    className="h-12 text-base"
+                                />
+                            </div>
+
+                            <div>
+                                <Label className="text-sm text-muted-foreground mb-2 block">
+                                    주소 <span className="text-destructive">*</span>
+                                </Label>
+                                <Input
+                                    onClick={openPostcode}
+                                    value={address}
+                                    onChange={(e) => setAddress(e.target.value)}
+                                    placeholder="주소 입력"
+                                    className="h-12 text-base"
+                                    readOnly
+                                />
+                            </div>
+
+                            <div>
+                                <Label className="text-sm text-muted-foreground mb-2 block">
+                                    상세 주소
+                                </Label>
+                                <Input
+                                    value={addressDetail}
+                                    onChange={(e) => setAddressDetail(e.target.value)}
+                                    placeholder="상세 주소 입력"
+                                    className="h-12 text-base"
+                                />
+                            </div>
+
+                            <div>
+                                <Label className="text-sm text-muted-foreground mb-2 block">
+                                    업종 <span className="text-destructive">*</span>
+                                </Label>
+                                <Select value={businessType} onValueChange={setBusinessType}>
+                                    <SelectTrigger className="h-12 text-base">
+                                        <SelectValue placeholder="업종 선택" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="food">음식점 / 카페</SelectItem>
+                                        <SelectItem value="cafe">편의점</SelectItem>
+                                        <SelectItem value="retail">판매 / 매장</SelectItem>
+                                        <SelectItem value="service">서비스업</SelectItem>
+                                        <SelectItem value="education">교육</SelectItem>
+                                        <SelectItem value="other">기타</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div>
+                                <Label className="text-sm text-muted-foreground mb-2 block">
+                                    대표자명 <span className="text-destructive">*</span>
+                                </Label>
+                                <Input
+                                    value={ownerName}
+                                    onChange={(e) => setOwnerName(e.target.value)}
+                                    placeholder="대표자명 입력"
+                                    className="h-12 text-base"
+                                />
+                            </div>
+
+                            <div>
+                                <Label className="text-sm text-muted-foreground mb-2 block">
+                                    대표번호 <span className="text-destructive">*</span>
+                                </Label>
+                                <Input
+                                    value={ownerPhone}
+                                    onChange={(e) => setOwnerPhone(e.target.value)}
+                                    placeholder="대표번호 입력"
+                                    className="h-12 text-base"
+                                />
+                            </div>
                         </div>
 
-                        <button className="w-full mt-8 mb-10 py-4 rounded-xl text-base font-semibold bg-primary text-primary-foreground active:opacity-90">
+                        <Button
+                            onClick={handleSubmit}
+                            disabled={!isComplete}
+                            className={`w-full mt-6 py-6 rounded-xl text-base font-semibold transition-colors ${isComplete
+                                ? "bg-primary text-primary-foreground active:opacity-90"
+                                : "bg-muted text-muted-foreground cursor-not-allowed"
+                                }`}
+                        >
                             사업자 등록증 업로드하기
-                        </button>
+                        </Button>
                     </>
                 )}
+
             </div>
         </div>
     );
 };
-
-const InfoRow = ({ label, value }: { label: string; value: string }) => (
-    <div>
-        <p className="text-sm text-muted-foreground">{label}</p>
-        <p className="text-base font-semibold text-foreground mt-0.5">{value}</p>
-    </div>
-);
 
 export default BusinessVerify;
