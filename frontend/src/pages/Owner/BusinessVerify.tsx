@@ -4,12 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useNavigate } from "react-router-dom";
 
 const BusinessVerify = () => {
+    const navigate = useNavigate();
     const [rawDigits, setRawDigits] = useState("");
+    const isComplete = rawDigits.length === 10;
+    const isValidFormat = /^\d{10}$/.test(rawDigits);
     const [isVerified, setIsVerified] = useState(false);
     const [isError, setIsError] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
 
     // 매장정보 다루는 변수들
     const [storeName, setStoreName] = useState("");
@@ -30,9 +33,6 @@ const BusinessVerify = () => {
         const onlyDigits = e.target.value.replace(/\D/g, "").slice(0, 10);
         setRawDigits(onlyDigits);
     };
-
-    const isComplete = rawDigits.length === 10;
-    const isValidFormat = /^\d{10}$/.test(rawDigits);
 
     const handleVerify = async () => {
         if (!isValidFormat) return;
@@ -66,8 +66,14 @@ const BusinessVerify = () => {
     };
 
     const handleSubmit = () => {
-
-    }
+        if (storeName && address && businessType && ownerName && ownerPhone) {
+            navigate("/owner/business/upload", {
+                state: { storeName, address, businessType, ownerName, ownerPhone }
+            });
+        } else {
+            alert("모든 필수 정보를 입력해주세요.");
+        }
+    };
 
     return (
         <div className="min-h-screen bg-background flex flex-col max-w-md mx-auto">

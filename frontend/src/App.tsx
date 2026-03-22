@@ -18,6 +18,7 @@ import ProfilePhotoPage from "./pages/ProfilePhotoPage";
 import SignupCompletePage from "./pages/SignupCompletePage";
 import Index from "./pages/Index";
 import BusinessVerify from "./pages/Owner/BusinessVerify";
+import BusinessVerifyUpload from "./pages/Owner/BusinessVerifyUpload";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ const App = () => (
 
             {/* 사장유형 라우터 */}
             <Route path="/owner/business-verify" element={<BusinessVerify />} />
+            <Route path="/owner/business/upload" element={<BusinessVerifyUpload />} />
 
 
             <Route path="/employees" element={<EmployeeList />} />

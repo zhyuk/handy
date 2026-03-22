@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/PageHeader';
-import { BottomSheet } from '@/components/BottomSheet';
+import BottomSheet from '@/components/BottomSheet';
 import { StatusBadge } from '@/components/StatusBadge';
 import { mockEmployees, PayCycle, WorkDay } from '@/types/employee';
 import { Camera, ChevronDown, Check } from 'lucide-react';
