@@ -17,7 +17,7 @@ const memberTypes = [
     description: "핸디를 사용중인 매장의\n직원이라면 선택해 주세요.",
     icon: HardHat,
     iconBg: "bg-accent",
-    navigation: "/staff/business-verify"
+    navigation: "/employee/business-verify"
   },
 ] as const;
 

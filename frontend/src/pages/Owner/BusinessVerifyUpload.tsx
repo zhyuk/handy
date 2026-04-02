@@ -57,8 +57,16 @@ const BusinessVerifyUpload = () => {
       body: formData
     });
 
-    if (res.ok){
+    if (res.ok) {
       setScreen("submitted")
+    }
+
+    if (!res.ok) {
+      const err = await res.json();
+
+      if (res.status === 500) {
+        alert(err.detail || "데이터 저장 중 오류가 발생했습니다.")
+      }
     }
   }
 
