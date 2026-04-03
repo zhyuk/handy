@@ -3,23 +3,24 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HashRouter, Routes, Route } from "react-router-dom";
-import Test from "./pages/Test";
-import Login from "./pages/Login";
-import EmployeeList from "./pages/EmployeeList";
-import EmployeeDetail from "./pages/EmployeeDetail";
-import EmployeeEdit from "./pages/EmployeeEdit";
-import NotFound from "./pages/NotFound";
-import Signup from "./pages/Signup";
-import ScrollToTop from "./utils/scrollToTop"
-import CodeVerifyPage from "./pages/CodeVerify";
-import PasswordPage from "./pages/PasswordPage";
-import ProfileInfoPage from "./pages/ProfileInfoPage";
-import ProfilePhotoPage from "./pages/ProfilePhotoPage";
-import SignupCompletePage from "./pages/SignupCompletePage";
-import Index from "./pages/Index";
-import BusinessVerify from "./pages/Owner/BusinessVerify";
-import BusinessVerifyUpload from "./pages/Owner/BusinessVerifyUpload";
-import StoreRegistration from "./pages/Employee/StoreRegistration";
+import Test from "@/pages/Test";
+import Login from "@/pages/Login";
+import EmployeeList from "@/pages/EmployeeList";
+import EmployeeDetail from "@/pages/EmployeeDetail";
+import EmployeeEdit from "@/pages/EmployeeEdit";
+import NotFound from "@/pages/NotFound";
+import Signup from "@/pages/Signup";
+import ScrollToTop from "@/utils/scrollToTop"
+import CodeVerifyPage from "@/pages/CodeVerify";
+import PasswordPage from "@/pages/PasswordPage";
+import ProfileInfoPage from "@/pages/ProfileInfoPage";
+import ProfilePhotoPage from "@/pages/ProfilePhotoPage";
+import SignupCompletePage from "@/pages/SignupCompletePage";
+import Index from "@/pages/Index";
+import BusinessVerify from "@/pages/Owner/BusinessVerify";
+import BusinessVerifyUpload from "@/pages/Owner/BusinessVerifyUpload";
+import StoreRegistration from "@/pages/Employee/StoreRegistration";
+import EmployeeHome from "@/pages/Employee/Index"
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,8 @@ const App = () => (
 
             {/* 직원유형 라우터 */}
             <Route path="/employee/business-verify" element={<StoreRegistration />} />
+
+            <Route path="/employee/home" element={<EmployeeHome />} />
 
 
             <Route path="/employees" element={<EmployeeList />} />
