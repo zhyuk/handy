@@ -2,8 +2,9 @@ import { ChevronRight, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface Notice {
+  id: number;
   writer: string;
-  content: string;
+  title: string;
   created_at: string;
 }
 
@@ -37,7 +38,7 @@ const StoreNotices = ({ notices }: StoreNoticesProps) => {
                 <span className="text-sm font-medium text-[hsl(var(--notice-author))]">{notice.writer}</span>
                 <span className="shrink-0 text-xs font-medium text-[hsl(var(--notice-time))]">{new Date(notice.created_at).toLocaleDateString("ko-KR")}</span>
               </div>
-              <p className="mt-1 text-base font-medium text-[hsl(var(--notice-content))] overflow-hidden text-ellipsis whitespace-nowrap">{notice.content}</p>
+              <p className="mt-1 text-base font-medium text-[hsl(var(--notice-content))] overflow-hidden text-ellipsis whitespace-nowrap">{notice.title}</p>
             </div>
           </div>
         ))}

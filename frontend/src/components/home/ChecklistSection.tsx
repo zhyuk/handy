@@ -24,6 +24,7 @@ const ChecklistSection = ({ userName, items: initialItems }: ChecklistSectionPro
   const totalCount = todoList.length;
 
   const toggleItem = async (id: number) => {
+
     try {
       const res = await fetch('/api/employee/todo/modify', {
         method: 'POST',

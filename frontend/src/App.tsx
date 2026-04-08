@@ -21,6 +21,10 @@ import BusinessVerify from "@/pages/Owner/BusinessVerify";
 import BusinessVerifyUpload from "@/pages/Owner/BusinessVerifyUpload";
 import StoreRegistration from "@/pages/Employee/StoreRegistration";
 import EmployeeHome from "@/pages/Employee/Index"
+import BoardList from "./pages/Employee/BoardList";
+import BoardDetail from "./pages/Employee/BoardDetail";
+import Schedule from "./pages/Employee/Schedule";
+import BoardWrite from "./pages/Employee/BoardWrite";
 
 const queryClient = new QueryClient();
 
@@ -43,14 +47,20 @@ const App = () => (
             <Route path="/signup-complete" element={<SignupCompletePage />} />
             <Route path="/onboarding/member-type" element={<Index />} />
 
+            {/* 공통 기능 */}
+            <Route path="/board" element={<BoardList />} />
+            <Route path="/board/write" element={<BoardWrite />} />
+            <Route path="/board/:id" element={<BoardDetail />} />
+
+
             {/* 사장유형 라우터 */}
             <Route path="/owner/business-verify" element={<BusinessVerify />} />
             <Route path="/owner/business/upload" element={<BusinessVerifyUpload />} />
 
             {/* 직원유형 라우터 */}
             <Route path="/employee/business-verify" element={<StoreRegistration />} />
-
             <Route path="/employee/home" element={<EmployeeHome />} />
+            <Route path="/schedule" element={<Schedule />} />
 
 
             <Route path="/employees" element={<EmployeeList />} />

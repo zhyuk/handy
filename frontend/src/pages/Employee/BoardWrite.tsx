@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { ChevronLeft, ChevronDown, X, Camera } from "lucide-react";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { addBoard, modifyBoard } from "@/api/board";
 
 // 직원은 공지사항 카테고리 없음
 const categoryOptions = ["건의사항", "비품관리", "대타요청", "일반 게시글"];
@@ -11,7 +12,10 @@ export default function BoardWrite() {
   const navigate = useNavigate();
   const location = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const editData = location.state as { edit?: boolean; post?: { category: string; title: string; content: string; photos: string[] } } | null;
+  const editData = location.state as {
+    edit?: boolean;
+    post?: { id: number; category: string; title: string; content: string; photos: string[] }
+  } | null;
   const isEdit = editData?.edit === true;
 
   const [category, setCategory] = useState(editData?.post?.category || "");
@@ -31,10 +35,29 @@ export default function BoardWrite() {
 
   const handlePhotoUpload = (fromCamera = false) => {
     setShowPhotoSheet(false);
-    // 실제로는 fileInput 트리거 — 시뮬레이션으로 랜덤 이미지 추가
-    if (photos.length < maxPhotos) {
-      setPhotos(prev => [...prev, `https://picsum.photos/200/200?random=${Date.now()}`]);
+    if (photos.length >= maxPhotos) return;
+
+    if (fileInputRef.current) {
+      fileInputRef.current.accept = "image/*";
+      fileInputRef.current.capture = fromCamera ? "environment" : "";
+      fileInputRef.current.click();
     }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const remaining = maxPhotos - photos.length;
+    const selected = files.slice(0, remaining);
+
+    selected.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setPhotos(prev => [...prev, reader.result as string]); // base64
+      };
+      reader.readAsDataURL(file);
+    });
+
+    e.target.value = ""; // 같은 파일 재선택 가능하게
   };
 
   const handleDeletePhoto = () => {
@@ -43,10 +66,19 @@ export default function BoardWrite() {
     setDeletePhotoIdx(-1);
   };
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     setRegisterDialog(false);
-    toast(isEdit ? "게시글이 수정되었어요" : "게시글이 등록되었어요", { duration: 2000 });
-    setTimeout(() => navigate(-1), 500);
+    try {
+      if (isEdit) {
+        await modifyBoard(editData!.post!.id, 1, 1, category, title, content, photos);
+      } else {
+        await addBoard(1, 1, category, title, content, photos);
+      }
+      toast(isEdit ? "게시글이 수정되었어요" : "게시글이 등록되었어요", { duration: 2000 });
+      setTimeout(() => navigate(-1), 500);
+    } catch {
+      toast.error("등록에 실패했습니다.");
+    }
   };
 
 
@@ -100,12 +132,13 @@ export default function BoardWrite() {
               <Camera className="h-5 w-5 text-white" />
             </div>
             <span style={{ fontSize: '13px', color: '#AAB4BF' }}>{photos.length} / {maxPhotos}</span>
+
           </button>
 
           {/* 업로드된 사진들 */}
           {photos.map((photo, idx) => (
             <div key={idx} className="relative flex-shrink-0 rounded-xl overflow-hidden" style={{ width: '120px', height: '120px' }}>
-              <img src={photo} alt="" className="w-full h-full object-cover" />
+              <img src={(photo.startsWith('/uploads') ? `http://localhost:8000${photo}` : photo)} alt="" className="w-full h-full object-cover" />
               <button onClick={() => { setDeletePhotoIdx(idx); setDeletePhotoDialog(true); }}
                 className="absolute top-1.5 right-1.5 flex items-center justify-center rounded-full"
                 style={{ width: '24px', height: '24px', backgroundColor: 'rgba(0,0,0,0.5)' }}>
@@ -123,7 +156,7 @@ export default function BoardWrite() {
       </div>
 
       {/* 숨겨진 파일 입력 */}
-      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={() => handlePhotoUpload()} />
+      <input ref={fileInputRef} type="file" multiple accept="image/*" className="hidden" onChange={handleFileChange} />
 
       {/* 카테고리 바텀시트 */}
       {showCategorySheet && (
@@ -143,7 +176,7 @@ export default function BoardWrite() {
                   <span>{opt}</span>
                   {category === opt && (
                     <svg width="18" height="14" viewBox="0 0 18 14" fill="none">
-                      <path d="M1.5 7L6.5 12L16.5 1.5" stroke="#4261FF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M1.5 7L6.5 12L16.5 1.5" stroke="#4261FF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   )}
                 </button>

@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, Search, MessageSquare, Plus } from "lucide-react";
 import BottomNav from "@/components/home/BottomNav";
-import { Post, DUMMY_POSTS as dummyPosts } from "@/lib/boardData";
+import { Post, fetchBoardList } from "@/api/board";
 
 const categories = ["전체", "공지사항", "건의사항", "비품관리", "대타요청", "일반 게시글"];
 
@@ -19,13 +19,36 @@ export default function BoardList() {
   const [selectedCategory, setSelectedCategory] = useState("전체");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filtered = dummyPosts.filter(
-    (p) => (selectedCategory === "전체" || p.category === selectedCategory) &&
-      (searchQuery === "" || p.title.includes(searchQuery) || p.content.includes(searchQuery))
-  );
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const filtered = useMemo(() => {
+    return posts.filter((p) => {
+      const categoryMatch = selectedCategory === "전체" || p.category === selectedCategory;
+      const searchMatch = searchQuery === "" ||
+        p.title.includes(searchQuery) ||
+        p.content.includes(searchQuery);
+      return categoryMatch && searchMatch;
+    });
+  }, [posts, selectedCategory, searchQuery]);
 
   const notices = filtered.filter((p) => p.category === "공지사항");
   const others = filtered.filter((p) => p.category !== "공지사항");
+
+  useEffect(() => {
+    const getBoardList = async () => {
+      try {
+        const data = await fetchBoardList(1);
+        setPosts(data);
+      } catch (err) {
+        console.log("화면 로드 실패:", err);
+      } finally {
+        // 로딩 상태 종료
+        setLoading(false);
+      }
+    }
+    getBoardList();
+  }, []);
 
   return (
     <div className="min-h-screen max-w-lg mx-auto" style={{ backgroundColor: '#F7F7F8' }}>
@@ -91,7 +114,7 @@ export default function BoardList() {
         <Plus className="h-6 w-6 text-white" />
       </button>
 
-      <BottomNav activeTab="board" onTabChange={() => {}} />
+      <BottomNav activeTab="board" onTabChange={() => { }} />
     </div>
   );
 }
@@ -99,6 +122,7 @@ export default function BoardList() {
 function PostCard({ post }: { post: Post }) {
   const navigate = useNavigate();
   const catStyle = CATEGORY_COLORS[post.category] || { bg: '#F7F7F8', color: '#AAB4BF' };
+
   return (
     <div className="rounded-2xl bg-white p-4 cursor-pointer" style={{ boxShadow: '2px 2px 12px rgba(0,0,0,0.06)' }}
       onClick={() => navigate(`/board/${post.id}`)}>
@@ -114,9 +138,22 @@ function PostCard({ post }: { post: Post }) {
       </p>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
-          <span className="rounded-full px-2 py-0.5" style={{ fontSize: '12px', color: '#70737B', backgroundColor: '#F7F7F8' }}>{post.author}</span>
-          {post.role && <span className="rounded-full px-2 py-0.5" style={{ fontSize: '12px', color: '#70737B', backgroundColor: '#F7F7F8' }}>{post.role}</span>}
-          <span style={{ fontSize: '12px', color: '#AAB4BF' }}>| {post.date}</span>
+          {post.role === 'owner' ? (
+            <span className="rounded-full px-2 py-0.5" style={{ fontSize: '12px', color: '#70737B', backgroundColor: '#F7F7F8' }}>
+              사장님
+            </span>
+          ) : (
+            <>
+              <span className="rounded-full px-2 py-0.5" style={{ fontSize: '12px', color: '#70737B', backgroundColor: '#F7F7F8' }}>
+                {post.writer}
+              </span>
+
+              <span className="rounded-full px-2 py-0.5" style={{ fontSize: '12px', color: '#70737B', backgroundColor: '#F7F7F8' }}>
+                알바생
+              </span>
+            </>
+          )}
+          <span style={{ fontSize: '12px', color: '#AAB4BF' }}>| {new Date(post.created_at).toLocaleDateString("ko-KR")}</span>
         </div>
         <div className="flex items-center gap-1" style={{ color: '#AAB4BF' }}>
           <MessageSquare className="h-4 w-4" />

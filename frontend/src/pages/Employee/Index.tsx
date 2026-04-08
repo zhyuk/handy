@@ -85,15 +85,19 @@ const Index = () => {
   const [unscheduledDialogOpen, setUnscheduledDialogOpen] = useState(false);
   const [, setTick] = useState(0);
 
+  // 당일 근무일정 조회
   const [workSchedule, setWorkSchedule] = useState<{ work_start: string, work_end: string } | null>(null);
   const [scheduleLoading, setScheduleLoading] = useState(true);
 
+  // 공지사항
   const [storeNotices, setStoreNotices] = useState<any[]>([]);
+
+  const [weeklyWork, setWeeklyWork] = useState<any[]>([]);
 
   useEffect(() => {
     const getTodayWork = async () => {
       try {
-        const res = await fetch('/api/employee/work', {
+        const res = await fetch('/api/employee/work/today', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -129,8 +133,21 @@ const Index = () => {
       } catch (err) { }
     }
 
+    const getWeeklyWork = async () => {
+      try {
+        const res = await fetch('/api/employee/work', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ employee_id: 1, store_id: 1 })
+        });
+        const data = await res.json();
+        if (res.ok) setWeeklyWork(data);
+      } catch (err) { }
+    };
+
     getTodayWork();
     getNotice();
+    getWeeklyWork();
   }, []);
 
   useEffect(() => {
@@ -212,6 +229,47 @@ const Index = () => {
   const handleDismissNotice = useCallback((id: string) => {
     setNotices((prev) => prev.filter((n) => n.id !== id));
   }, []);
+
+  // MOCK_WEEKLY 대신 실데이터로 변환하는 함수
+  const buildWeeklyDays = () => {
+    const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
+    const today = new Date();
+    const todayDow = today.getDay(); // 0=일요일
+
+    // 이번주 일요일 기준으로 날짜 계산
+    const sunday = new Date(today);
+    sunday.setDate(today.getDate() - todayDow);
+
+    return dayNames.map((dayName, i) => {
+      const date = new Date(sunday);
+      date.setDate(sunday.getDate() + i);
+
+      const work = weeklyWork.find(w => w.day_of_week === i);
+      const startTime = work?.work_start?.slice(0, 5); // "10:00:00" → "10:00"
+      const endTime = work?.work_end?.slice(0, 5);
+
+      return {
+        day: dayName,
+        date: date.getDate(),
+        isToday: i === todayDow,
+        isWeekend: i === 0 || i === 6,
+        startTime,
+        endTime,
+      };
+    });
+  };
+
+  const buildDateRange = () => {
+    const today = new Date();
+    const sunday = new Date(today);
+    sunday.setDate(today.getDate() - today.getDay());
+    const saturday = new Date(sunday);
+    saturday.setDate(sunday.getDate() + 6);
+
+    const fmt = (d: Date) =>
+      `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
+    return `${fmt(sunday)}~${fmt(saturday)}`;
+  };
 
   return (
     <div className="mx-auto min-h-screen max-w-lg bg-background pb-20">
@@ -329,7 +387,7 @@ const Index = () => {
 
       {/* Weekly schedule */}
       <div className="mt-8">
-        <WeeklySchedule dateRange={MOCK_WEEKLY.dateRange} days={MOCK_WEEKLY.days} />
+        <WeeklySchedule dateRange={buildDateRange()} days={buildWeeklyDays()}/>
       </div>
 
       {/* Salary preview */}
