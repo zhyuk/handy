@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, ChevronDown, X, CalendarClock, Palmtree, Trash2 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import BottomNav from "@/components/home/BottomNav";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { MY_SCHEDULE, VACATION_DAYS, HOLIDAY_DAYS } from "@/lib/scheduleData";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { getMySchedule, getAllSchedule, getAllScheduleDetail } from "@/api/schedule";
 
 type TabType = "my" | "all" | "requests";
 type RequestStatus = "대기중" | "승인" | "거절";
@@ -21,77 +21,27 @@ interface ScheduleRequest {
   reason: string;
 }
 
-const CURRENT_USER_NAME = "정수민";
+interface MyScheduleData {
+  work_start: string | null;
+  work_end: string | null;
+  is_holiday: boolean;
+  part_name: "오픈" | "미들" | "마감" | null;
+}
 
-// 각 유형 내에서 시간대가 다른 케이스를 지원하는 구조
-interface StaffTimeSlot { time: string; names: string[]; }
-interface StaffShiftGroup { label: "오픈" | "미들" | "마감"; slots: StaffTimeSlot[]; }
+// 캘린더 셀 summary: { "2026-4-1": { "오픈": 2, "미들": 3, "마감": 2 } }
+type AllStaffSummary = Record<string, Record<string, number>>;
 
-const ALL_STAFF_SCHEDULE: Record<string, StaffShiftGroup[]> = (() => {
-  const DAILY_PATTERNS: StaffShiftGroup[][] = [
-    [
-      { label: "오픈", slots: [{ time: "08:00 - 12:00", names: ["문자영", "문자일"] }] },
-      { label: "미들", slots: [{ time: "12:00 - 16:00", names: ["문자이", "문자삼"] }, { time: "13:00 - 17:00", names: ["문자민", "문자통"] }] },
-      { label: "마감", slots: [{ time: "18:00 - 22:00", names: ["문자사", "문자오"] }] },
-    ],
-    [
-      { label: "오픈", slots: [{ time: "08:00 - 13:00", names: ["문자영", "문자삼"] }] },
-      { label: "미들", slots: [{ time: "13:00 - 18:00", names: ["문자이", "문자통"] }] },
-      { label: "마감", slots: [{ time: "17:00 - 22:00", names: ["문자일", "문자민", "문자오"] }] },
-    ],
-    [
-      { label: "오픈", slots: [{ time: "08:00 - 12:00", names: ["문자영"] }] },
-      { label: "미들", slots: [{ time: "12:00 - 17:00", names: ["문자이", "문자삼", "문자민"] }] },
-      { label: "마감", slots: [{ time: "18:00 - 22:00", names: ["문자일", "문자오"] }] },
-    ],
-  ];
+// 날짜 클릭 시 바텀시트 상세
+interface PartDetail {
+  part_id: number;
+  part_name: string;
+  start_time: string;
+  end_time: string;
+  employees: { id: number; name: string }[];
+}
 
-  const result: Record<string, StaffShiftGroup[]> = {};
-  const now = new Date();
-
-  for (let mOffset = -1; mOffset <= 1; mOffset++) {
-    const target = new Date(now.getFullYear(), now.getMonth() + mOffset, 1);
-    const y = target.getFullYear();
-    const m = target.getMonth() + 1;
-    const daysInMonth = new Date(y, m, 0).getDate();
-    for (let d = 1; d <= daysInMonth; d++) {
-      const key = `${y}-${m}-${d}`;
-      result[key] = DAILY_PATTERNS[d % 3].map(group => ({
-        ...group,
-        slots: group.slots.map(slot => ({ ...slot, names: [...slot.names] })),
-      }));
-    }
-  }
-
-  const SHIFT_LABEL_MAP: Record<string, "오픈" | "미들" | "마감"> = {
-    open: "오픈", middle: "미들", close: "마감",
-  };
-  Object.entries(MY_SCHEDULE).forEach(([dateKey, schedule]) => {
-    if (!result[dateKey]) return;
-    const label = SHIFT_LABEL_MAP[schedule.type];
-    const group = result[dateKey].find(g => g.label === label);
-    const timeStr = `${schedule.start} - ${schedule.end}`;
-    if (group) {
-      const slot = group.slots.find(s => s.time === timeStr);
-      if (slot) { if (!slot.names.includes(CURRENT_USER_NAME)) slot.names.push(CURRENT_USER_NAME); }
-      else group.slots.push({ time: timeStr, names: [CURRENT_USER_NAME] });
-    } else {
-      result[dateKey].push({ label, slots: [{ time: timeStr, names: [CURRENT_USER_NAME] }] });
-    }
-  });
-
-  return result;
-})();
-
-const ALL_STAFF_SUMMARY: Record<string, { open: number; middle: number; close: number }> = (() => {
-  const result: Record<string, { open: number; middle: number; close: number }> = {};
-  Object.entries(ALL_STAFF_SCHEDULE).forEach(([key, schedule]) => {
-    const countNames = (label: string) =>
-      schedule.find(g => g.label === label)?.slots.reduce((acc, s) => acc + s.names.length, 0) ?? 0;
-    result[key] = { open: countNames("오픈"), middle: countNames("미들"), close: countNames("마감") };
-  });
-  return result;
-})();
+const STORE_ID = 1;
+const EMPLOYEE_ID = 1;
 
 const DAYS_KR = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -100,6 +50,13 @@ const typeStyle = {
   middle:   { bg: '#ECFFF1', text: '#1EDC83' },
   close:    { bg: '#E8F9FF', text: '#14C1FA' },
   vacation: { bg: '#F7F7F8', text: '#AAB4BF' },
+};
+
+const getPartStyle = (partName?: "오픈" | "미들" | "마감" | null) => {
+  if (partName === "오픈") return typeStyle.open;
+  if (partName === "미들") return typeStyle.middle;
+  if (partName === "마감") return typeStyle.close;
+  return typeStyle.open;
 };
 
 const shiftTagStyle = {
@@ -204,6 +161,18 @@ const Schedule = () => {
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [filterTab, setFilterTab] = useState<"전체" | "일정 변경" | "휴가">("전체");
 
+  // 나의 일정
+  const [scheduleLoading, setScheduleLoading] = useState(false);
+  const [mySchedule, setMySchedule] = useState<Record<string, MyScheduleData>>({});
+
+  // 전체 직원 - 캘린더 셀 summary
+  const [allStaffSummary, setAllStaffSummary] = useState<AllStaffSummary>({});
+  const [allSummaryLoading, setAllSummaryLoading] = useState(false);
+
+  // 전체 직원 - 바텀시트 상세
+  const [allStaffDetail, setAllStaffDetail] = useState<PartDetail[] | null>(null);
+  const [allDetailLoading, setAllDetailLoading] = useState(false);
+
   const today = new Date();
   const isToday = (year: number, month: number, date: number) =>
     today.getFullYear() === year && today.getMonth() === month && today.getDate() === date;
@@ -211,6 +180,40 @@ const Schedule = () => {
   const calendarDays = getCalendarDays(currentYear, currentMonth);
   const weeks: typeof calendarDays[] = [];
   for (let i = 0; i < calendarDays.length; i += 7) weeks.push(calendarDays.slice(i, i + 7));
+
+  // 나의 일정 API
+  useEffect(() => {
+    if (activeTab !== "my") return;
+    const fetch = async () => {
+      setScheduleLoading(true);
+      try {
+        const data = await getMySchedule(STORE_ID, EMPLOYEE_ID, currentYear, currentMonth + 1);
+        setMySchedule(data);
+      } catch (err) {
+        console.error("일정 조회 실패:", err);
+      } finally {
+        setScheduleLoading(false);
+      }
+    };
+    fetch();
+  }, [currentYear, currentMonth, activeTab]);
+
+  // 전체 직원 summary API
+  useEffect(() => {
+    if (activeTab !== "all") return;
+    const fetch = async () => {
+      setAllSummaryLoading(true);
+      try {
+        const data = await getAllSchedule(STORE_ID, currentYear, currentMonth + 1);
+        setAllStaffSummary(data);
+      } catch (err) {
+        console.error("전체 직원 summary 조회 실패:", err);
+      } finally {
+        setAllSummaryLoading(false);
+      }
+    };
+    fetch();
+  }, [currentYear, currentMonth, activeTab]);
 
   const prevMonth = () => {
     if (currentMonth === 0) { setCurrentYear(currentYear - 1); setCurrentMonth(11); }
@@ -221,17 +224,29 @@ const Schedule = () => {
     else setCurrentMonth(currentMonth + 1);
   };
 
-  const handleDateClick = (year: number, month: number, date: number, isOutside: boolean) => {
+  const handleDateClick = async (year: number, month: number, date: number, isOutside: boolean) => {
     if (isOutside) return;
     setSelectedDate(getDateKey(year, month, date));
     setBottomSheetOpen(true);
+
+    // 전체 직원 탭일 때만 상세 API 호출
+    if (activeTab === "all") {
+      setAllStaffDetail(null);
+      setAllDetailLoading(true);
+      try {
+        const data = await getAllScheduleDetail(STORE_ID, year, month + 1, date);
+        setAllStaffDetail(data);
+      } catch (err) {
+        console.error("전체 직원 상세 조회 실패:", err);
+      } finally {
+        setAllDetailLoading(false);
+      }
+    }
   };
 
-  const selectedSchedule = selectedDate ? MY_SCHEDULE[selectedDate] : null;
-  const selectedVacation = selectedDate ? VACATION_DAYS.includes(selectedDate) : false;
-  const selectedHoliday = selectedDate ? HOLIDAY_DAYS.includes(selectedDate) : false;
-  const selectedStaff = selectedDate ? ALL_STAFF_SCHEDULE[selectedDate] : null;
-  const selectedSummary = selectedDate ? ALL_STAFF_SUMMARY[selectedDate] : null;
+  const selectedSchedule = selectedDate ? mySchedule[selectedDate] : null;
+  const selectedHoliday = selectedSchedule?.is_holiday === true;
+  const selectedVacation = false;
 
   const formatSelectedDate = () => {
     if (!selectedDate) return "";
@@ -245,18 +260,6 @@ const Schedule = () => {
     const [eh, em] = end.split(":").map(Number);
     return (eh * 60 + em - sh * 60 - sm) / 60;
   };
-
-  const staffRows = (summary: { open: number; middle: number; close: number }) => [
-    { icon: <IconOpen />, count: summary.open, bg: typeStyle.open.bg, text: typeStyle.open.text },
-    { icon: <IconMiddle />, count: summary.middle, bg: typeStyle.middle.bg, text: typeStyle.middle.text },
-    { icon: <IconClose />, count: summary.close, bg: typeStyle.close.bg, text: typeStyle.close.text },
-  ];
-
-  const sheetGroups = [
-    { label: "오픈" as const, style: shiftTagStyle.open },
-    { label: "미들" as const, style: shiftTagStyle.middle },
-    { label: "마감" as const, style: shiftTagStyle.close },
-  ];
 
   const filteredRequests = scheduleRequests
     .filter(r => {
@@ -285,6 +288,7 @@ const Schedule = () => {
   };
 
   const showCalendar = activeTab === "my" || activeTab === "all";
+  const isCalendarLoading = activeTab === "my" ? scheduleLoading : allSummaryLoading;
 
   return (
     <div className="mx-auto min-h-screen max-w-lg bg-white pb-20">
@@ -307,7 +311,7 @@ const Schedule = () => {
         </div>
       </div>
 
-      {/* 캘린더 (나의 일정 / 전체 직원) */}
+      {/* 캘린더 */}
       {showCalendar && (
         <>
           <div className="flex items-center justify-between px-5 py-4">
@@ -321,70 +325,83 @@ const Schedule = () => {
 
           <div className="grid grid-cols-7 px-3">
             {DAYS_KR.map((day, i) => (
-              <div key={day} className="text-center pb-3" style={{ fontSize: '14px', fontWeight: 500, letterSpacing: '-0.02em', color: i === 0 ? '#FF5959' : i === 6 ? '#5DB1FF' : '#70737B' }}>
+              <div key={day} className="text-center pb-3"
+                style={{ fontSize: '14px', fontWeight: 500, letterSpacing: '-0.02em', color: i === 0 ? '#FF5959' : i === 6 ? '#5DB1FF' : '#70737B' }}>
                 {day}
               </div>
             ))}
           </div>
 
           <div className="px-3">
-            {weeks.map((week, wi) => (
-              <div key={wi} className="grid grid-cols-7 mb-1">
-                {week.map((d, di) => {
-                  const key = getDateKey(d.year, d.month, d.date);
-                  const schedule = !d.isOutside ? MY_SCHEDULE[key] : null;
-                  const isVacation = !d.isOutside && VACATION_DAYS.includes(key);
-                  const isHoliday = !d.isOutside && HOLIDAY_DAYS.includes(key);
-                  const isTodayDate = !d.isOutside && isToday(d.year, d.month, d.date);
-                  const isSun = di === 0;
-                  const isSat = di === 6;
-                  const staffSummary = !d.isOutside ? ALL_STAFF_SUMMARY[key] : null;
-                  const dateColor = d.isOutside ? '#AAB4BF' : isTodayDate ? '#FFFFFF' : isSun ? '#FF5959' : isSat ? '#5DB1FF' : '#70737B';
+            {isCalendarLoading ? (
+              <div className="flex items-center justify-center py-20 text-sm text-[#AAB4BF]">로딩 중...</div>
+            ) : (
+              weeks.map((week, wi) => (
+                <div key={wi} className="grid grid-cols-7 mb-1">
+                  {week.map((d, di) => {
+                    const key = getDateKey(d.year, d.month, d.date);
+                    const scheduleData = !d.isOutside ? mySchedule[key] : null;
+                    const isHoliday = scheduleData?.is_holiday === true;
+                    const isTodayDate = !d.isOutside && isToday(d.year, d.month, d.date);
+                    const isSun = di === 0;
+                    const isSat = di === 6;
+                    const partStyle = scheduleData ? getPartStyle(scheduleData.part_name) : typeStyle.open;
+                    const partSummary = !d.isOutside ? allStaffSummary[key] : null;
+                    const dateColor = d.isOutside ? '#AAB4BF' : isTodayDate ? '#FFFFFF' : isSun ? '#FF5959' : isSat ? '#5DB1FF' : '#70737B';
 
-                  return (
-                    <button key={di} onClick={() => handleDateClick(d.year, d.month, d.date, d.isOutside)}
-                      className="flex flex-col items-center py-1.5 w-full" style={{ minHeight: '90px' }} disabled={d.isOutside}>
-                      <div style={{ height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '4px' }}>
-                        <span style={{ fontSize: '14px', fontWeight: 500, letterSpacing: '-0.02em', color: dateColor, ...(isTodayDate ? { backgroundColor: '#4261FF', borderRadius: '10px', minWidth: '40px', width: '40px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center' } : {}) }}>
-                          {d.date}
-                        </span>
-                      </div>
-                      {activeTab === "my" && !d.isOutside && (
-                        <div className="flex flex-col items-center w-full px-0.5">
-                          {schedule && (
-                            <div className="flex flex-col items-center justify-center w-full" style={{ backgroundColor: typeStyle[schedule.type].bg, borderRadius: '4px', minHeight: '36px', padding: '2px 0' }}>
-                              <span style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '-0.02em', color: typeStyle[schedule.type].text, lineHeight: '1.3' }}>{schedule.start}</span>
-                              <span style={{ fontSize: '10px', color: typeStyle[schedule.type].text, lineHeight: '1' }}>-</span>
-                              <span style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '-0.02em', color: typeStyle[schedule.type].text, lineHeight: '1.3' }}>{schedule.end}</span>
-                            </div>
-                          )}
-                          {isVacation && (
-                            <div className="flex items-center justify-center w-full" style={{ backgroundColor: typeStyle.vacation.bg, borderRadius: '4px', minHeight: '17px', height: '17px' }}>
-                              <span style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '-0.02em', color: typeStyle.vacation.text }}>휴가</span>
-                            </div>
-                          )}
-                          {isHoliday && (
-                            <div className="flex items-center justify-center w-full" style={{ backgroundColor: '#FFE8E8', borderRadius: '4px', minHeight: '17px', height: '17px' }}>
-                              <span style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '-0.02em', color: '#FF5959' }}>휴무</span>
-                            </div>
-                          )}
+                    return (
+                      <button key={di} onClick={() => handleDateClick(d.year, d.month, d.date, d.isOutside)}
+                        className="flex flex-col items-center py-1.5 w-full" style={{ minHeight: '90px' }} disabled={d.isOutside}>
+                        <div style={{ height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '4px' }}>
+                          <span style={{
+                            fontSize: '14px', fontWeight: 500, letterSpacing: '-0.02em', color: dateColor,
+                            ...(isTodayDate ? { backgroundColor: '#4261FF', borderRadius: '10px', minWidth: '40px', width: '40px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center' } : {})
+                          }}>
+                            {d.date}
+                          </span>
                         </div>
-                      )}
-                      {activeTab === "all" && !d.isOutside && staffSummary && (
-                        <div className="flex flex-col w-full px-0.5" style={{ gap: '2px' }}>
-                          {staffRows(staffSummary).map(({ icon, count, bg, text }, idx) => (
-                            <div key={idx} style={{ backgroundColor: bg, borderRadius: '4px', padding: '0 4px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                              <span style={{ display: 'flex', alignItems: 'center' }}>{icon}</span>
-                              <span style={{ fontSize: '11px', fontWeight: 600, color: text, lineHeight: 1 }}>{count}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
+
+                        {activeTab === "my" && !d.isOutside && (
+                          <div className="flex flex-col items-center w-full px-0.5">
+                            {scheduleData && !isHoliday && scheduleData.work_start && (
+                              <div className="flex flex-col items-center justify-center w-full"
+                                style={{ backgroundColor: partStyle.bg, borderRadius: '4px', minHeight: '36px', padding: '2px 0' }}>
+                                <span style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '-0.02em', color: partStyle.text, lineHeight: '1.3' }}>{scheduleData.work_start}</span>
+                                <span style={{ fontSize: '10px', color: partStyle.text, lineHeight: '1' }}>-</span>
+                                <span style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '-0.02em', color: partStyle.text, lineHeight: '1.3' }}>{scheduleData.work_end}</span>
+                              </div>
+                            )}
+                            {isHoliday && (
+                              <div className="flex items-center justify-center w-full"
+                                style={{ backgroundColor: '#FFE8E8', borderRadius: '4px', minHeight: '17px', height: '17px' }}>
+                                <span style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '-0.02em', color: '#FF5959' }}>휴무</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {activeTab === "all" && !d.isOutside && (
+                          <div className="flex flex-col w-full px-0.5" style={{ gap: '2px' }}>
+                            {[
+                              { name: "오픈", icon: <IconOpen />, style: typeStyle.open },
+                              { name: "미들", icon: <IconMiddle />, style: typeStyle.middle },
+                              { name: "마감", icon: <IconClose />, style: typeStyle.close },
+                            ].map(({ name, icon, style }) =>
+                              partSummary?.[name] ? (
+                                <div key={name} style={{ backgroundColor: style.bg, borderRadius: '4px', padding: '0 4px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                                  <span style={{ display: 'flex', alignItems: 'center' }}>{icon}</span>
+                                  <span style={{ fontSize: '11px', fontWeight: 600, color: style.text, lineHeight: 1 }}>{partSummary[name]}</span>
+                                </div>
+                              ) : null
+                            )}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))
+            )}
           </div>
         </>
       )}
@@ -412,7 +429,6 @@ const Schedule = () => {
               const isVacation = req.requestType === "휴가 요청";
               return (
                 <div key={req.id} className="rounded-2xl bg-white p-5" style={{ boxShadow: '2px 2px 12px rgba(0,0,0,0.06)' }}>
-                  {/* 카드 헤더 */}
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
                       <span style={badgeStyle(statusStyle.bg, statusStyle.color)}>{req.requestStatus}</span>
@@ -425,7 +441,6 @@ const Schedule = () => {
                     )}
                   </div>
 
-                  {/* 기존 일정 */}
                   {!isVacation && req.original && (
                     <>
                       <p style={{ fontSize: '13px', fontWeight: 500, color: '#AAB4BF', letterSpacing: '-0.02em', marginBottom: '6px' }}>기존 일정</p>
@@ -437,7 +452,6 @@ const Schedule = () => {
                     </>
                   )}
 
-                  {/* 변경/희망 일정 */}
                   <p style={{ fontSize: '13px', fontWeight: 500, color: '#AAB4BF', letterSpacing: '-0.02em', marginBottom: '6px' }}>
                     {isVacation ? "휴가 요청 일정" : "변경 일정"}
                   </p>
@@ -447,7 +461,6 @@ const Schedule = () => {
                     </p>
                   </div>
 
-                  {/* 요청 사유 */}
                   <p style={{ fontSize: '13px', fontWeight: 500, color: '#AAB4BF', letterSpacing: '-0.02em', marginBottom: '4px' }}>
                     {isVacation ? "휴가 요청 사유" : "변경 요청 사유"}
                   </p>
@@ -472,13 +485,16 @@ const Schedule = () => {
           {activeTab === "my" ? (
             <div>
               <div className="flex items-center gap-3">
-                {selectedSchedule ? (
+                {selectedSchedule && !selectedHoliday && selectedSchedule.work_start ? (
                   <>
-                    <span className="rounded-full px-3 py-1 text-[13px] font-medium whitespace-nowrap" style={{ backgroundColor: shiftTagStyle[selectedSchedule.type].bg, color: shiftTagStyle[selectedSchedule.type].text }}>
-                      {selectedSchedule.type === 'open' ? '오픈' : selectedSchedule.type === 'middle' ? '미들' : '마감'}
+                    <span className="rounded-full px-3 py-1 text-[13px] font-medium whitespace-nowrap" style={{
+                      backgroundColor: getPartStyle(selectedSchedule.part_name).bg,
+                      color: getPartStyle(selectedSchedule.part_name).text,
+                    }}>
+                      {selectedSchedule.part_name ?? "근무"}
                     </span>
                     <span className="text-[15px] text-foreground">
-                      {selectedSchedule.start} - {selectedSchedule.end} (총 {calcHours(selectedSchedule.start, selectedSchedule.end)}시간)
+                      {selectedSchedule.work_start} - {selectedSchedule.work_end} (총 {calcHours(selectedSchedule.work_start, selectedSchedule.work_end!)}시간)
                     </span>
                   </>
                 ) : selectedVacation ? (
@@ -495,27 +511,39 @@ const Schedule = () => {
             </div>
           ) : (
             <div className="space-y-5">
-              {selectedStaff && selectedSummary && sheetGroups.map(({ label, style }) => {
-                const group = selectedStaff.find(g => g.label === label);
-                if (!group) return null;
-                const totalCount = group.slots.reduce((acc, s) => acc + s.names.length, 0);
-                return (
-                  <div key={label}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="rounded-full px-3 py-1 text-[13px] font-medium" style={{ backgroundColor: style.bg, color: style.text }}>{label}</span>
-                      <span className="text-[13px] text-muted-foreground">{totalCount}명</span>
-                    </div>
-                    <div className="space-y-1 pl-2">
-                      {group.slots.map((slot, i) => (
-                        <div key={i} className="flex items-start gap-3">
-                          <span className="text-[14px] text-muted-foreground whitespace-nowrap">{slot.time}</span>
-                          <span className="text-[14px] font-medium text-foreground">{slot.names.join(', ')}</span>
+              {allDetailLoading ? (
+                <p className="text-sm text-[#AAB4BF]">로딩 중...</p>
+              ) : allStaffDetail && allStaffDetail.length > 0 ? (
+                allStaffDetail.map((part) => {
+                  const style =
+                    part.part_name === "오픈" ? shiftTagStyle.open :
+                    part.part_name === "미들" ? shiftTagStyle.middle :
+                    shiftTagStyle.close;
+                  return (
+                    <div key={part.part_id}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="rounded-full px-3 py-1 text-[13px] font-medium"
+                          style={{ backgroundColor: style.bg, color: style.text }}>
+                          {part.part_name}
+                        </span>
+                        <span className="text-[13px] text-muted-foreground">{part.employees.length}명</span>
+                      </div>
+                      <div className="pl-2">
+                        <div className="flex items-start gap-3">
+                          <span className="text-[14px] text-muted-foreground whitespace-nowrap">
+                            {part.start_time} - {part.end_time}
+                          </span>
+                          <span className="text-[14px] font-medium text-foreground">
+                            {part.employees.map(e => e.name).join(', ')}
+                          </span>
                         </div>
-                      ))}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              ) : (
+                <p className="text-sm text-[#AAB4BF]">근무 일정이 없습니다.</p>
+              )}
             </div>
           )}
 

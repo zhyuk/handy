@@ -36,3 +36,24 @@ export async function fetchBoardList(storeId: number): Promise<Post[]> {
         throw err;
     }
 }
+
+// 직원 개인의 일정 조회 
+export async function getMySchedule(storeId: number, employeeId: number, year: number, month: number) {
+    const response = await fetch(`/api/employee/schedule/${storeId}/${employeeId}?year=${year}&month=${month}`);
+    if (!response.ok) throw new Error("일정 조회 실패");
+    return response.json();
+}
+
+// 전체 직원 일정 조회 
+export async function getAllSchedule(storeId: number, year: number, month: number) {
+    const response = await fetch(`/api/employee/schedule/${storeId}?year=${year}&month=${month}`);
+    if (!response.ok) throw new Error("일정 조회 실패");
+    return response.json();
+}
+
+// 요일별 전체 직원 일정 조회
+export async function getAllScheduleDetail(storeId: number, year: number, month: number, day: number) {
+    const response = await fetch(`/api/employee/schedule/${storeId}/detail?year=${year}&month=${month}&day=${day}`);
+    if (!response.ok) throw new Error("일정 조회 실패");
+    return response.json();
+}
