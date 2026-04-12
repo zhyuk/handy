@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import BottomNav from "@/components/home/BottomNav";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
-import { getMySchedule, getAllSchedule, getAllScheduleDetail } from "@/api/schedule";
+import { getMySchedule, getAllSchedule, getAllScheduleDetail, getScheduleChange } from "@/api/schedule";
 
 type TabType = "my" | "all" | "requests";
 type RequestStatus = "대기중" | "승인" | "거절";
@@ -28,10 +28,8 @@ interface MyScheduleData {
   part_name: "오픈" | "미들" | "마감" | null;
 }
 
-// 캘린더 셀 summary: { "2026-4-1": { "오픈": 2, "미들": 3, "마감": 2 } }
 type AllStaffSummary = Record<string, Record<string, number>>;
 
-// 날짜 클릭 시 바텀시트 상세
 interface PartDetail {
   part_id: number;
   part_name: string;
@@ -71,29 +69,6 @@ const REQUEST_STATUS_STYLE: Record<RequestStatus, { bg: string; color: string }>
   "거절":   { bg: '#FFEAE6', color: '#FF3D3D' },
 };
 const REQUEST_TYPE_STYLE = { bg: '#E8F3FF', color: '#4261FF' };
-
-const MOCK_SCHEDULE_REQUESTS: ScheduleRequest[] = [
-  {
-    id: "1", requestStatus: "대기중", requestType: "일정 변경 요청", requestedAt: 3,
-    date: "2026년 4월 8일 (수)",
-    original: { date: "2026년 4월 8일 (수)", startTime: "08:00", endTime: "14:00" },
-    desired:  { date: "2026년 4월 9일 (목)", startTime: "13:00", endTime: "18:00" },
-    reason: "개인 사정으로 변경 요청드립니다.",
-  },
-  {
-    id: "2", requestStatus: "승인", requestType: "휴가 요청", requestedAt: 2,
-    date: "2026년 4월 3일 (금)",
-    desired: { date: "2026년 4월 3일 (금)" },
-    reason: "병원 방문 예정입니다.",
-  },
-  {
-    id: "3", requestStatus: "거절", requestType: "일정 변경 요청", requestedAt: 1,
-    date: "2026년 3월 28일 (토)",
-    original: { date: "2026년 3월 28일 (토)", startTime: "14:00", endTime: "18:00" },
-    desired:  { date: "2026년 3월 29일 (일)", startTime: "08:00", endTime: "13:00" },
-    reason: "가족 행사가 있어서 요청합니다.",
-  },
-];
 
 const IconOpen = () => (
   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
@@ -153,11 +128,7 @@ const Schedule = () => {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
   const [fabOpen, setFabOpen] = useState(false);
-  const [scheduleRequests, setScheduleRequests] = useState<ScheduleRequest[]>(() => {
-    const newRequest = location.state?.newScheduleRequest;
-    if (newRequest) return [newRequest, ...MOCK_SCHEDULE_REQUESTS];
-    return MOCK_SCHEDULE_REQUESTS;
-  });
+  const [scheduleRequests, setScheduleRequests] = useState<ScheduleRequest[]>([]);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [filterTab, setFilterTab] = useState<"전체" | "일정 변경" | "휴가">("전체");
 
@@ -173,6 +144,9 @@ const Schedule = () => {
   const [allStaffDetail, setAllStaffDetail] = useState<PartDetail[] | null>(null);
   const [allDetailLoading, setAllDetailLoading] = useState(false);
 
+  // 변경 요청 내역
+  const [requestsLoading, setRequestsLoading] = useState(false);
+
   const today = new Date();
   const isToday = (year: number, month: number, date: number) =>
     today.getFullYear() === year && today.getMonth() === month && today.getDate() === date;
@@ -181,10 +155,17 @@ const Schedule = () => {
   const weeks: typeof calendarDays[] = [];
   for (let i = 0; i < calendarDays.length; i += 7) weeks.push(calendarDays.slice(i, i + 7));
 
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 (${DAYS_KR[d.getDay()]})`;
+  };
+
+  const formatTime = (timeStr: string | null) => timeStr ? timeStr.slice(0, 5) : undefined;
+
   // 나의 일정 API
   useEffect(() => {
     if (activeTab !== "my") return;
-    const fetch = async () => {
+    const fetchSchedule = async () => {
       setScheduleLoading(true);
       try {
         const data = await getMySchedule(STORE_ID, EMPLOYEE_ID, currentYear, currentMonth + 1);
@@ -195,13 +176,13 @@ const Schedule = () => {
         setScheduleLoading(false);
       }
     };
-    fetch();
+    fetchSchedule();
   }, [currentYear, currentMonth, activeTab]);
 
   // 전체 직원 summary API
   useEffect(() => {
     if (activeTab !== "all") return;
-    const fetch = async () => {
+    const fetchAll = async () => {
       setAllSummaryLoading(true);
       try {
         const data = await getAllSchedule(STORE_ID, currentYear, currentMonth + 1);
@@ -212,8 +193,43 @@ const Schedule = () => {
         setAllSummaryLoading(false);
       }
     };
-    fetch();
+    fetchAll();
   }, [currentYear, currentMonth, activeTab]);
+
+  // 변경 요청 내역 API
+  useEffect(() => {
+    if (activeTab !== "requests") return;
+    const fetchRequests = async () => {
+      setRequestsLoading(true);
+      try {
+        const data = await getScheduleChange(STORE_ID, EMPLOYEE_ID);
+        const mapped: ScheduleRequest[] = data.map((r: any, idx: number) => ({
+          id: String(r.id),
+          requestStatus: r.status === "pending" ? "대기중" : r.status === "approved" ? "승인" : "거절",
+          requestType: r.type === "vacation" ? "휴가 요청" : "일정 변경 요청",
+          requestedAt: data.length - idx,
+          date: r.type === "vacation" ? formatDate(r.desired_date) : formatDate(r.origin_date ?? r.desired_date),
+          original: r.origin_date ? {
+            date: formatDate(r.origin_date),
+            startTime: formatTime(r.origin_start),
+            endTime: formatTime(r.origin_end),
+          } : undefined,
+          desired: {
+            date: formatDate(r.desired_date),
+            startTime: formatTime(r.desired_start),
+            endTime: formatTime(r.desired_end),
+          },
+          reason: r.reason,
+        }));
+        setScheduleRequests(mapped);
+      } catch (err) {
+        console.error("변경 요청 조회 실패:", err);
+      } finally {
+        setRequestsLoading(false);
+      }
+    };
+    fetchRequests();
+  }, [activeTab]);
 
   const prevMonth = () => {
     if (currentMonth === 0) { setCurrentYear(currentYear - 1); setCurrentMonth(11); }
@@ -229,7 +245,6 @@ const Schedule = () => {
     setSelectedDate(getDateKey(year, month, date));
     setBottomSheetOpen(true);
 
-    // 전체 직원 탭일 때만 상세 API 호출
     if (activeTab === "all") {
       setAllStaffDetail(null);
       setAllDetailLoading(true);
@@ -295,7 +310,7 @@ const Schedule = () => {
       {/* Header + Tabs */}
       <div className="sticky top-0 z-10" style={{ backgroundColor: '#FFFFFF' }}>
         <div className="flex items-center gap-2 px-2 pt-4 pb-2">
-          <button onClick={() => navigate("/")} className="p-1">
+          <button onClick={() => navigate("/employee/home")} className="p-1">
             <ChevronLeft className="h-6 w-6 text-foreground" />
           </button>
           <h1 style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.02em', color: '#19191B' }}>일정 확인</h1>
@@ -423,51 +438,57 @@ const Schedule = () => {
           </div>
 
           <div className="flex flex-col gap-4 px-5">
-            {filteredRequests.map((req) => {
-              const statusStyle = REQUEST_STATUS_STYLE[req.requestStatus];
-              const canDelete = req.requestStatus === "승인" || req.requestStatus === "거절";
-              const isVacation = req.requestType === "휴가 요청";
-              return (
-                <div key={req.id} className="rounded-2xl bg-white p-5" style={{ boxShadow: '2px 2px 12px rgba(0,0,0,0.06)' }}>
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <span style={badgeStyle(statusStyle.bg, statusStyle.color)}>{req.requestStatus}</span>
-                      <span style={badgeStyle(REQUEST_TYPE_STYLE.bg, REQUEST_TYPE_STYLE.color)}>{req.requestType}</span>
-                    </div>
-                    {canDelete && (
-                      <button onClick={() => setDeleteTargetId(req.id)} className="p-1">
-                        <Trash2 className="h-[18px] w-[18px]" style={{ color: '#AAB4BF' }} />
-                      </button>
-                    )}
-                  </div>
-
-                  {!isVacation && req.original && (
-                    <>
-                      <p style={{ fontSize: '13px', fontWeight: 500, color: '#AAB4BF', letterSpacing: '-0.02em', marginBottom: '6px' }}>기존 일정</p>
-                      <div className="rounded-xl px-4 py-3 mb-3" style={{ backgroundColor: '#F7F7F8' }}>
-                        <p style={{ fontSize: '13px', color: '#70737B', letterSpacing: '-0.02em' }}>
-                          {req.original.date}{req.original.startTime && ` | ${req.original.startTime} - ${req.original.endTime}`}
-                        </p>
+            {requestsLoading ? (
+              <div className="flex items-center justify-center py-20 text-sm text-[#AAB4BF]">로딩 중...</div>
+            ) : filteredRequests.length === 0 ? (
+              <div className="flex items-center justify-center py-20 text-sm text-[#AAB4BF]">요청 내역이 없어요.</div>
+            ) : (
+              filteredRequests.map((req) => {
+                const statusStyle = REQUEST_STATUS_STYLE[req.requestStatus];
+                const canDelete = req.requestStatus === "승인" || req.requestStatus === "거절";
+                const isVacation = req.requestType === "휴가 요청";
+                return (
+                  <div key={req.id} className="rounded-2xl bg-white p-5" style={{ boxShadow: '2px 2px 12px rgba(0,0,0,0.06)' }}>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <span style={badgeStyle(statusStyle.bg, statusStyle.color)}>{req.requestStatus}</span>
+                        <span style={badgeStyle(REQUEST_TYPE_STYLE.bg, REQUEST_TYPE_STYLE.color)}>{req.requestType}</span>
                       </div>
-                    </>
-                  )}
+                      {canDelete && (
+                        <button onClick={() => setDeleteTargetId(req.id)} className="p-1">
+                          <Trash2 className="h-[18px] w-[18px]" style={{ color: '#AAB4BF' }} />
+                        </button>
+                      )}
+                    </div>
 
-                  <p style={{ fontSize: '13px', fontWeight: 500, color: '#AAB4BF', letterSpacing: '-0.02em', marginBottom: '6px' }}>
-                    {isVacation ? "휴가 요청 일정" : "변경 일정"}
-                  </p>
-                  <div className="rounded-xl px-4 py-3 mb-3" style={{ backgroundColor: '#F0F7FF' }}>
-                    <p style={{ fontSize: '13px', color: '#4261FF', letterSpacing: '-0.02em' }}>
-                      {req.desired?.date}{req.desired?.startTime && ` | ${req.desired.startTime} - ${req.desired.endTime}`}
+                    {!isVacation && req.original && (
+                      <>
+                        <p style={{ fontSize: '13px', fontWeight: 500, color: '#AAB4BF', letterSpacing: '-0.02em', marginBottom: '6px' }}>기존 일정</p>
+                        <div className="rounded-xl px-4 py-3 mb-3" style={{ backgroundColor: '#F7F7F8' }}>
+                          <p style={{ fontSize: '13px', color: '#70737B', letterSpacing: '-0.02em' }}>
+                            {req.original.date}{req.original.startTime && ` | ${req.original.startTime} - ${req.original.endTime}`}
+                          </p>
+                        </div>
+                      </>
+                    )}
+
+                    <p style={{ fontSize: '13px', fontWeight: 500, color: '#AAB4BF', letterSpacing: '-0.02em', marginBottom: '6px' }}>
+                      {isVacation ? "휴가 요청 일정" : "변경 일정"}
                     </p>
-                  </div>
+                    <div className="rounded-xl px-4 py-3 mb-3" style={{ backgroundColor: '#F0F7FF' }}>
+                      <p style={{ fontSize: '13px', color: '#4261FF', letterSpacing: '-0.02em' }}>
+                        {req.desired?.date}{req.desired?.startTime && ` | ${req.desired.startTime} - ${req.desired.endTime}`}
+                      </p>
+                    </div>
 
-                  <p style={{ fontSize: '13px', fontWeight: 500, color: '#AAB4BF', letterSpacing: '-0.02em', marginBottom: '4px' }}>
-                    {isVacation ? "휴가 요청 사유" : "변경 요청 사유"}
-                  </p>
-                  <p style={{ fontSize: '13px', fontWeight: 400, color: '#70737B', letterSpacing: '-0.02em' }}>{req.reason}</p>
-                </div>
-              );
-            })}
+                    <p style={{ fontSize: '13px', fontWeight: 500, color: '#AAB4BF', letterSpacing: '-0.02em', marginBottom: '4px' }}>
+                      {isVacation ? "휴가 요청 사유" : "변경 요청 사유"}
+                    </p>
+                    <p style={{ fontSize: '13px', fontWeight: 400, color: '#70737B', letterSpacing: '-0.02em' }}>{req.reason}</p>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       )}

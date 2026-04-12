@@ -57,3 +57,10 @@ export async function getAllScheduleDetail(storeId: number, year: number, month:
     if (!response.ok) throw new Error("일정 조회 실패");
     return response.json();
 }
+
+// 변경 요청 조회
+export async function getScheduleChange(storeId: number, employeeId: number) {
+    const response = await fetch(`/api/employee/schedule/change?store_id=${storeId}&employee_id=${employeeId}`);
+    if (!response.ok) throw new Error("일정 변경 요청 조회 실패");
+    return response.json();
+}

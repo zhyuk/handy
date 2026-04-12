@@ -25,6 +25,19 @@ import BoardList from "./pages/Employee/BoardList";
 import BoardDetail from "./pages/Employee/BoardDetail";
 import Schedule from "./pages/Employee/Schedule";
 import BoardWrite from "./pages/Employee/BoardWrite";
+import ClosingReport from "./pages/Employee/ClosingReport";
+import SalaryManagement from "./pages/Employee/SalaryManagement";
+import PayStubDetail from "./pages/Employee/PayStubDetail";
+import AttendanceManagement from "./pages/Employee/AttendanceManagement";
+import AttendanceRecordEdit from "./pages/Employee/AttendanceRecordEdit";
+import Feedback from "./pages/Employee/Feedback";
+import FeedbackDetail from "./pages/Employee/FeedbackDetail";
+import Profile from "./pages/Employee/Profile";
+import ProfileEdit from "./pages/Employee/ProfileEdit";
+import PasswordChange from "./pages/Employee/PasswordChange";
+import Withdrawal from "./pages/Employee/Withdrawal";
+import Announcements from "./pages/Employee/Announcements";
+import AnnouncementDetail from "./pages/Employee/AnnouncementDetail";
 
 const queryClient = new QueryClient();
 
@@ -47,20 +60,48 @@ const App = () => (
             <Route path="/signup-complete" element={<SignupCompletePage />} />
             <Route path="/onboarding/member-type" element={<Index />} />
 
-            {/* 공통 기능 */}
+            {/* ===== 공통 기능 ===== */}
             <Route path="/board" element={<BoardList />} />
             <Route path="/board/write" element={<BoardWrite />} />
             <Route path="/board/:id" element={<BoardDetail />} />
 
+            {/* 건의함 */}
+            <Route path="/feedback" element={<Feedback />} />
+            <Route path="/feedback/:id" element={<FeedbackDetail />} />
 
-            {/* 사장유형 라우터 */}
+            {/* 서비스 공지사항 */}
+            <Route path="/announcements" element={<Announcements />} />
+            <Route path="/announcements/:id" element={<AnnouncementDetail />} />
+
+            {/* 회원 탈퇴 */}
+            <Route path="/withdrawal" element={<Withdrawal />} />
+            {/* ===== 공통 기능 끝 ===== */}
+
+
+            {/* ===== 사장유형 ===== */}
             <Route path="/owner/business-verify" element={<BusinessVerify />} />
             <Route path="/owner/business/upload" element={<BusinessVerifyUpload />} />
+            {/* ===== 사장유형 끝 ===== */}
 
-            {/* 직원유형 라우터 */}
+            {/* ===== 직원유형 ===== */}
             <Route path="/employee/business-verify" element={<StoreRegistration />} />
             <Route path="/employee/home" element={<EmployeeHome />} />
             <Route path="/schedule" element={<Schedule />} />
+            <Route path="/closing-report" element={<ClosingReport />} />
+
+            {/* 급여 관리 */}
+            <Route path="/employee/salary" element={<SalaryManagement />} />
+            <Route path="/employee/salary/pay-stub/:id" element={<PayStubDetail />} />
+
+            {/* 출근 관리 */}
+            <Route path="/attendance" element={<AttendanceManagement />} />
+            <Route path="/attendance/record-edit" element={<AttendanceRecordEdit />} />
+
+            {/* 내 정보 */}
+            <Route path="/employee/profile" element={<Profile />} />
+            <Route path="/employee/profile/edit" element={<ProfileEdit />} />
+            <Route path="/employee/profile/edit/password" element={<PasswordChange />} />
+            {/* ===== 직원유형 끝 ===== */}
 
 
             <Route path="/employees" element={<EmployeeList />} />

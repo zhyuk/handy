@@ -29,15 +29,15 @@ const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
               key={tab.id}
               onClick={() => {
                 if (tab.id === "home") {
-                  navigate("/");
+                  navigate("/employee/home");
                 } else if (tab.id === "salary") {
-                  navigate("/salary");
+                  navigate("/employee/salary");
                 } else if (tab.id === "attendance") {
                   navigate("/attendance");
                 } else if (tab.id === "board") {
                   navigate("/board");
                 } else if (tab.id === "myinfo") {
-                  navigate("/profile");
+                  navigate("/employee/profile");
                 } else {
                   onTabChange(tab.id);
                 }

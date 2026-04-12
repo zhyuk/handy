@@ -14,6 +14,7 @@ import {
   DrawerContent,
   DrawerClose,
 } from "@/components/ui/drawer";
+import { addClosingReport, checkClosingStatus } from "@/api/employee";
 
 const ClosingReport = () => {
   const navigate = useNavigate();
@@ -49,6 +50,26 @@ const ClosingReport = () => {
     if (completedDate === today) setShowAlreadyDoneDialog(true);
   }, []);
 
+  // 당일 매장의 마감 보고 현황 체크
+
+  // TODO: 추후 매장 토큰을 활용해 하드코딩 제거하기
+  const storeId = 1;
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const data = await checkClosingStatus(Number(storeId));
+
+        if (data.is_completed) {
+          setShowAlreadyDoneDialog(true);
+        }
+      } catch (err) {
+        console.error("마감 상태 확인 실패:", err);
+      }
+    };
+
+    fetchStatus();
+  }, [storeId]);
+
   const handleNumberInput = (value: string, setter: (v: string) => void) => {
     const cleaned = value.replace(/[^0-9]/g, "");
     setter(cleaned);
@@ -62,15 +83,47 @@ const ClosingReport = () => {
   const handleNext = () => { if (step < 4) setStep(step + 1); };
   const handleSubmit = () => { setShowConfirmDialog(true); };
 
-  const handleConfirm = () => {
-    setShowConfirmDialog(false);
-    toast("마감 보고가 완료 되었어요.", {
-      duration: 3000,
-      style: { background: "#3C3C3C", color: "#FFFFFF", border: "none", borderRadius: "8px" },
-    });
-    const today = new Date().toISOString().slice(0, 10);
-    localStorage.setItem("closingReportCompletedDate", today);
-    setTimeout(() => navigate(-1), 500);
+  // storeId는 props나 context에서 가져온다고 가정합니다.
+  const handleConfirm = async () => {
+    try {
+      // 1. 데이터 가공 (문자열 -> 숫자)
+      const payload = {
+        store_id: Number(1), // 실제 storeId 변수 사용
+        employee_id: Number(1),
+        report_date: new Date().toISOString().slice(0, 10),
+
+        card_sales: Number(cardSales) || 0,
+        cash_sales: Number(cashSales) || 0,
+        transfer_sales: Number(transferSales) || 0,
+        gift_sales: Number(voucherSales) || 0, // voucherSales -> gift_sales 매칭
+
+        discount_amount: Number(discountAmount) || 0,
+        refund_amount: Number(refundAmount) || 0,
+        cash_on_hand: Number(cashOnHand) || 0,
+
+        // DB Enum 타입에 맞춰 한국어 -> 영어 변환
+        cash_shortage_type: cashDiffType === "초과" ? "plus" : cashDiffType === "부족" ? "minus" : null,
+        cash_shortage_amount: Number(cashDiffAmount) || 0,
+
+        receipt_image_url: receiptImage, // 실제 구현 시 S3 업로드 후 URL을 보낼 것을 권장
+        manager_note: additionalMessage,
+      };
+
+      // 2. API 호출
+      await addClosingReport(payload);
+
+      // 3. 성공 처리
+      setShowConfirmDialog(false);
+      toast("마감 보고가 완료 되었어요.", {
+        duration: 3000,
+        style: { background: "#3C3C3C", color: "#FFFFFF", border: "none", borderRadius: "8px" },
+      });
+
+      setTimeout(() => navigate(-1), 500);
+    } catch (err) {
+      toast.error("마감 보고 중 오류가 발생했습니다.");
+      console.error(err);
+    }
   };
 
   const handleMessageSheetSubmit = () => {
@@ -147,7 +200,7 @@ const ClosingReport = () => {
       <div className="border-b border-border" />
 
       <div className="flex-1 px-5 pt-4 pb-[100px]">
-        <h1 className="text-[24px] font-bold text-[#292B2E] leading-tight">{(() => { const now = new Date(); const days = ["일", "월", "화", "수", "목", "금", "토"]; return `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,"0")}.${String(now.getDate()).padStart(2,"0")} (${days[now.getDay()]})`; })()}</h1>
+        <h1 className="text-[24px] font-bold text-[#292B2E] leading-tight">{(() => { const now = new Date(); const days = ["일", "월", "화", "수", "목", "금", "토"]; return `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, "0")}.${String(now.getDate()).padStart(2, "0")} (${days[now.getDay()]})`; })()}</h1>
         <h2 className="text-[24px] font-bold text-[#292B2E] leading-tight mb-2">마감 보고하기</h2>
 
         {step === 1 && (
@@ -344,9 +397,9 @@ const ClosingReport = () => {
         description={<>마감 보고를 진행하시겠어요?<br />작성한 내용은 사장님께 전달돼요.</>}
         buttons={[{ label: "취소", onClick: () => setShowConfirmDialog(false), variant: "cancel" }, { label: "확인", onClick: handleConfirm }]} />
 
-      <ConfirmDialog open={showAlreadyDoneDialog} onOpenChange={() => {}} title="마감 보고 완료"
+      <ConfirmDialog open={showAlreadyDoneDialog} onOpenChange={() => { }} title="마감 보고 완료"
         description={<>오늘의 마감 보고는 완료 되었어요.<br />마감 보고는 하루에 한 번 가능해요.</>}
-        buttons={[{ label: "확인", onClick: () => navigate("/") }]} />
+        buttons={[{ label: "확인", onClick: () => navigate("/employee/home") }]} />
     </div>
   );
 };
