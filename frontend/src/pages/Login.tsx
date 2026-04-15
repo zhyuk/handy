@@ -235,7 +235,7 @@ const Login = () => {
 
             {/* [임시용] 추후 로그인 구현 시 삭제 */}
             <div>
-                <button onClick={() => navigate("/employees")}>직원 관리</button>
+                <button onClick={() => navigate("/employee/home")}>직원 관리</button>
             </div>
         </div>
     );

@@ -1,11 +1,42 @@
 import { useState, useRef } from "react";
 import { ChevronLeft, ChevronDown, ChevronRight, X, Eye, EyeOff, AlertCircle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+
+interface ProfileData {
+  name: string;
+  birth: string | null;
+  age: number | null;
+  gender: string | null;
+  phone: string;
+  image_url: string | null;
+  bank: string | null;
+  account_number: string | null;
+  store_name: string;
+  joined_at: string;
+  days_since_joined: number;
+  role: string;
+  employee_type: string | null;
+  salary_cycle: string | null;
+  salary_day: number | null;
+  hourly_rate: number | null;
+  is_probation: boolean;
+  income_tax: number | null;
+  local_income_tax: number | null;
+  national_pension_tax: number | null;
+  health_insurance_tax: number | null;
+  long_term_care_tax: number | null;
+  employment_insurance_tax: number | null;
+  industrial_accident_tax: number | null;
+  resume: string | null;
+  employment_contract: string | null;
+  health_certificate: string | null;
+}
 import {
   Drawer,
   DrawerContent,
 } from "@/components/ui/drawer";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { changeInfo } from "@/api/mypage";
 
 const allBanks = [
   "국민은행", "신한은행", "농협", "우리은행", "기업은행", "하나은행",
@@ -16,52 +47,52 @@ const allBanks = [
 
 const ProfileEdit = () => {
   const navigate = useNavigate();
+  const { state } = useLocation();
+  const profileData: ProfileData = state?.profileData;
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const docFileInputRef = useRef<HTMLInputElement>(null);
 
-  const [name, setName] = useState("정수민");
-  const [profileImage, setProfileImage] = useState<string | null>(null);
-  const [birthDate] = useState("2001.02.03");
-  const [age] = useState(24);
-  const [gender] = useState("여자");
-  const [phone] = useState("010-5050-5050");
-  const [bank, setBank] = useState("신한은행");
-  const [accountNumber, setAccountNumber] = useState("333333333333");
+  const [name, setName] = useState(profileData?.name ?? "");
+  const [profileImage, setProfileImage] = useState<string | null>(profileData?.image_url ?? null);
+  const birthDate = profileData?.birth ?? "";
+  const age = profileData?.age ?? null;
+  const gender = profileData?.gender ?? "";
+  const phone = profileData?.phone ?? "";
+  const [bank, setBank] = useState(profileData?.bank ?? "");
+  const [accountNumber, setAccountNumber] = useState(profileData?.account_number ?? "");
 
   const contract = {
-    employmentType: "정규직",
-    joinDate: "2025.02.12",
-    joinDays: 261,
-    probation: "수습 적용",
-    salaryType: "월급",
-    salaryDay: "15일",
-    schedule: [
-      { day: "월", time: "08:00 ~ 16:00", tags: ["오픈", "미들"] },
-      { day: "화", time: "08:00 ~ 22:00", tags: ["오픈", "미들", "마감"] },
-      { day: "수", time: "08:00 ~ 16:00", tags: ["오픈", "미들"] },
-      { day: "목", time: "08:00 ~ 16:00", tags: ["오픈", "미들"] },
-    ],
-    hourlyWage: "11,000원",
+    employmentType: profileData?.employee_type ?? "",
+    joinDate: profileData?.joined_at ?? "",
+    joinDays: profileData?.days_since_joined ?? 0,
+    probation: profileData?.is_probation ? "수습 적용" : "수습 미적용",
+    salaryType: profileData?.salary_cycle ?? "",
+    salaryDay: profileData?.salary_day != null ? `${profileData.salary_day}일` : "",
+    hourlyWage: profileData?.hourly_rate != null ? `${profileData.hourly_rate.toLocaleString()}원` : "",
   };
+
+  const formatRate = (value: number | null, suffix = "%") =>
+    value != null ? `(${value}${suffix})` : "";
 
   const tax = {
     incomeTax: [
-      { label: "소득세", rate: "(3%)" },
-      { label: "지방소득세", rate: "(0.3%)" },
+      { label: "소득세", rate: formatRate(profileData?.income_tax) },
+      { label: "지방소득세", rate: formatRate(profileData?.local_income_tax) },
     ],
     insurance: [
-      { label: "국민연금", rate: "(4.75%)" },
-      { label: "건강보험", rate: "(3.595%)" },
-      { label: "장기기요양보험", rate: "(건강보험의 13.14%)" },
-      { label: "고용보험", rate: "(건강보험의 1.8%)" },
-      { label: "산재보험", rate: "(건강보험의 1.47%)" },
+      { label: "국민연금", rate: formatRate(profileData?.national_pension_tax) },
+      { label: "건강보험", rate: formatRate(profileData?.health_insurance_tax) },
+      { label: "장기요양보험", rate: formatRate(profileData?.long_term_care_tax) },
+      { label: "고용보험", rate: formatRate(profileData?.employment_insurance_tax) },
+      { label: "산재보험", rate: formatRate(profileData?.industrial_accident_tax) },
     ],
   };
 
   const [documentItems, setDocumentItems] = useState([
-    { label: "이력서", fileName: "정수민_이력서.png", uploaded: true },
-    { label: "근로계약서", fileName: "정수민_근로계약서.png", uploaded: true },
-    { label: "보건증", fileName: null as string | null, uploaded: false },
+    { label: "이력서", fileName: profileData?.resume ?? null, uploaded: profileData?.resume != null },
+    { label: "근로계약서", fileName: profileData?.employment_contract ?? null, uploaded: profileData?.employment_contract != null },
+    { label: "보건증", fileName: profileData?.health_certificate ?? null, uploaded: profileData?.health_certificate != null },
   ]);
 
   const [nameSheetOpen, setNameSheetOpen] = useState(false);
@@ -112,8 +143,17 @@ const ProfileEdit = () => {
     }
   };
 
-  const handleEditConfirm = () => { setEditConfirmOpen(false); navigate("/profile"); };
-  const getDocUploadTitle = () => { if (docUploadIndex === null) return ""; return `${documentItems[docUploadIndex]?.label} 업로드하기`; };
+  const handleEditConfirm = async () => {
+    await changeInfo(name, bank, accountNumber);
+    setEditConfirmOpen(false);
+    navigate("/employee/profile");
+  };
+
+  const getDocUploadTitle = () => {
+    if (docUploadIndex === null) return "";
+    return `${documentItems[docUploadIndex]?.label} 업로드하기`;
+  };
+
   const allSubmitted = documentItems.every(d => d.uploaded);
 
   return (
@@ -154,7 +194,7 @@ const ProfileEdit = () => {
             </div>
             <div className="mt-1">
               <span className="inline-flex items-center justify-center w-[199px] h-[28px] rounded-[4px] bg-primary/10 text-primary text-[14px] tracking-[-0.02em] font-medium">
-                컴포즈커피 노량진점 입사 +{contract.joinDays}일
+                {profileData?.store_name} 입사 +{contract.joinDays}일
               </span>
             </div>
           </div>
@@ -170,8 +210,8 @@ const ProfileEdit = () => {
               <span className="text-[16px] tracking-[-0.02em] font-medium text-[hsl(223,5%,46%)] w-[100px] flex-shrink-0">이름</span>
               <button onClick={() => { setNameInput(name); setNameSheetOpen(true); }} className="flex-1 h-[44px] rounded-lg border border-border px-3 text-left text-[16px] tracking-[-0.02em] font-medium text-[hsl(210,5%,16%)]">{name}</button>
             </div>
-            <InfoRow label="생년월일" value={`${birthDate} (${age}세)`} />
-            <InfoRow label="성별" value={gender} />
+            <InfoRow label="생년월일" value={birthDate ? `${birthDate}${age != null ? ` (${age}세)` : ""}` : "-"} />
+            <InfoRow label="성별" value={gender || "-"} />
             <InfoRow label="전화번호" value={phone} />
             <div className="flex items-center">
               <span className="text-[16px] tracking-[-0.02em] font-medium text-[hsl(223,5%,46%)] w-[100px] flex-shrink-0">은행</span>
@@ -186,7 +226,7 @@ const ProfileEdit = () => {
                 {accountNumber || "미입력"}
               </button>
             </div>
-            <button onClick={() => navigate("/profile/edit/password")} className="flex items-center justify-between w-full pt-1">
+            <button onClick={() => navigate("/employee/profile/edit/password")} className="flex items-center justify-between w-full pt-1">
               <span className="text-[16px] tracking-[-0.02em] font-medium text-[hsl(223,5%,46%)]">비밀번호 변경</span>
               <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </button>
@@ -199,28 +239,12 @@ const ProfileEdit = () => {
         <section className="py-5 px-[20px]">
           <h2 className="text-[20px] tracking-[-0.02em] font-bold text-[hsl(210,5%,16%)] mb-4">계약 정보</h2>
           <div className="space-y-3">
-            <InfoRow label="고용형태" value={contract.employmentType} />
-            <InfoRow label="입사일" value={`${contract.joinDate} (+${contract.joinDays}일)`} />
+            <InfoRow label="고용형태" value={contract.employmentType || "-"} />
+            <InfoRow label="입사일" value={contract.joinDate ? `${contract.joinDate} (+${contract.joinDays}일)` : "-"} />
             <InfoRow label="수습" value={contract.probation} />
-            <InfoRow label="급여주기" value={contract.salaryType} />
-            <InfoRow label="시급" value={contract.hourlyWage} />
-            <InfoRow label="급여일" value={contract.salaryDay} />
-            <div className="flex items-start">
-              <span className="text-[16px] tracking-[-0.02em] font-medium text-[hsl(223,5%,46%)] w-[100px] flex-shrink-0 pt-0.5">근무일</span>
-              <div className="flex-1 space-y-2">
-                {contract.schedule.map((s, i) => (
-                  <div key={i} className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[16px] tracking-[-0.02em] font-semibold text-[hsl(210,5%,16%)] w-6">{s.day}</span>
-                    <span className="text-[16px] tracking-[-0.02em] font-medium text-[hsl(210,5%,16%)]">{s.time}</span>
-                    <div className="flex gap-1">
-                      {s.tags.map((tag) => (
-                        <span key={tag} className="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">{tag}</span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <InfoRow label="급여주기" value={contract.salaryType || "-"} />
+            <InfoRow label="시급" value={contract.hourlyWage || "-"} />
+            <InfoRow label="급여일" value={contract.salaryDay || "-"} />
           </div>
         </section>
 

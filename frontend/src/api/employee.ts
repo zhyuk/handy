@@ -1,5 +1,6 @@
 import { list } from 'postcss';
 import apiClient from './axios'
+import { fsync } from 'fs';
 
 interface ClosingStatusResponse {
     data: ClosingStatusResponse | PromiseLike<ClosingStatusResponse>;
@@ -69,3 +70,122 @@ export async function checkClosingStatus(storeId: number): Promise<ClosingStatus
         throw err;
     }
 }
+
+// 내 정보 조회 함수
+export async function getMyInfo(employee_id: number, store_id: number) {
+    try {
+        const res = await fetch(`/api/employee/mypage?employee_id=${employee_id}&store_id=${store_id}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.detail || '회원 정보 조회에 실패했습니다.');
+        }
+
+        return await res.json();
+
+    } catch (err) {
+        console.error("회원 정보 조회 에러:", err);
+        throw err;
+    }
+}
+
+// 출근 처리 
+export async function clockIn(store_id: number) {
+    try {
+        const res = await fetch(`/api/employee/work/clock-in`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ store_id })
+        });
+
+        if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.detail || '회원 정보 조회에 실패했습니다.');
+        }
+
+        return await res.json();
+
+    } catch (err) {
+        console.error("회원 정보 조회 에러:", err);
+        throw err;
+    }
+}
+
+// 퇴근 처리
+export async function clockOut(store_id: number) {
+    try {
+        const res = await fetch(`/api/employee/work/clock-out`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ store_id })
+        });
+
+        if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.detail || '회원 정보 조회에 실패했습니다.');
+        }
+
+        return await res.json();
+
+    } catch (err) {
+        console.error("회원 정보 조회 에러:", err);
+        throw err;
+    }
+}
+
+// 휴게 시작
+export async function breakStart(store_id: number) {
+    try {
+        const res = await fetch(`/api/employee/work/break-start`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ store_id })
+        });
+
+        if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.detail || '회원 정보 조회에 실패했습니다.');
+        }
+
+        return await res.json();
+
+    } catch (err) {
+        console.error("회원 정보 조회 에러:", err);
+        throw err;
+    }
+}
+
+// 휴게 종료
+export async function breakEnd(store_id: number) {
+    try {
+        const res = await fetch(`/api/employee/work/break-end`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ store_id })
+        });
+
+        if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.detail || '회원 정보 조회에 실패했습니다.');
+        }
+
+        return await res.json();
+
+    } catch (err) {
+        console.error("회원 정보 조회 에러:", err);
+        throw err;
+    }
+} 

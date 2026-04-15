@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronLeft, CheckCircle2, Copy, Pencil } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import BottomNav from "@/components/home/BottomNav";
@@ -13,59 +13,8 @@ import {
   Drawer,
   DrawerContent,
 } from "@/components/ui/drawer";
+import { getMyInfo } from "@/api/employee";
 
-// Mock data
-const profileData = {
-  name: "정수민",
-  employmentType: "정규직" as const,
-  profileImage: null as string | null,
-  joinDate: "2025.02.12",
-  joinDays: 261,
-  personal: {
-    birthDate: "2001.02.03",
-    age: 24,
-    gender: "여자",
-    phone: "010-5050-5050",
-    bank: "신한은행",
-    accountNumber: "333333333333",
-  },
-  contract: {
-    employmentType: "정규직",
-    joinDate: "2025.02.12",
-    joinDays: 261,
-    probation: "수습 적용",
-    salaryType: "월급",
-    salaryDay: "15일",
-    schedule: [
-      { day: "월", time: "08:00 ~ 16:00", tags: ["오픈", "미들"] },
-      { day: "화", time: "08:00 ~ 22:00", tags: ["오픈", "미들", "마감"] },
-      { day: "수", time: "08:00 ~ 16:00", tags: ["오픈", "미들"] },
-      { day: "목", time: "08:00 ~ 16:00", tags: ["오픈", "미들"] },
-    ],
-    hourlyWage: "11,000원",
-  },
-  tax: {
-    incomeTax: [
-      { label: "소득세", rate: "(3%)", bold: true },
-      { label: "지방소득세", rate: "(0.3%)", bold: false },
-    ],
-    insurance: [
-      { label: "국민연금", rate: "(4.75%)", bold: true },
-      { label: "건강보험", rate: "(3.595%)", bold: true },
-      { label: "장기기요양보험", rate: "(건강보험의 13.14%)", bold: true },
-      { label: "고용보험", rate: "(건강보험의 1.8%)", bold: true },
-      { label: "산재보험", rate: "(건강보험의 1.47%)", bold: true },
-    ],
-  },
-  documents: {
-    allSubmitted: true,
-    items: [
-      { label: "이력서", fileName: "정수민_이력서.png" },
-      { label: "근로계약서", fileName: "정수민_근로계약서.png" },
-      { label: "보건증", fileName: "정수민_보건증.png" },
-    ],
-  },
-};
 
 const adBanners = [
   { id: 1, bgColor: "bg-[hsl(200,60%,50%)]", title: "전국 스키장\n리프트권 특가 모음", subtitle: "25/26 NOL 스키 시즌" },
@@ -76,15 +25,46 @@ const adBanners = [
 
 const Divider = () => <div className="w-full h-[12px]" style={{ backgroundColor: '#F7F7F8' }} />;
 
+interface ProfileData {
+  name: string;
+  birth: string | null;
+  age: number | null;
+  gender: string | null;
+  phone: string;
+  image_url: string | null;
+  bank: string | null;
+  account_number: string | null;
+  store_name: string;
+  joined_at: string;
+  days_since_joined: number;
+  role: string;
+  employee_type: string | null;
+  salary_cycle: string | null;
+  salary_day: number | null;
+  hourly_rate: number | null;
+  is_probation: boolean;
+  income_tax: number | null;
+  local_income_tax: number | null;
+  national_pension_tax: number | null;
+  health_insurance_tax: number | null;
+  long_term_care_tax: number | null;
+  employment_insurance_tax: number | null;
+  industrial_accident_tax: number | null;
+  resume: string | null;
+  employment_contract: string | null;
+  health_certificate: string | null;
+}
+
 const Profile = () => {
   const navigate = useNavigate();
+  const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [viewingDoc, setViewingDoc] = useState<string | null>(null);
   const [currentAd, setCurrentAd] = useState(0);
   const [accountSheetOpen, setAccountSheetOpen] = useState(false);
 
   const handleCopyAccount = () => {
-    navigator.clipboard.writeText(profileData.personal.accountNumber.replace(/-/g, ""));
+    navigator.clipboard.writeText(profileData.account_number.replace(/-/g, ""));
     setAccountSheetOpen(true);
   };
 
@@ -92,6 +72,28 @@ const Profile = () => {
     setLogoutOpen(false);
     navigate("/login");
   };
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const employee_id = 1;
+      const store_id = 1;
+      try {
+        const data = await getMyInfo(employee_id, store_id);
+        setProfileData(data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  if (!profileData) {
+    return (
+      <div className="min-h-screen max-w-[430px] mx-auto flex items-center justify-center">
+        <p className="text-muted-foreground text-sm">불러오는 중...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen max-w-[430px] mx-auto relative font-[Pretendard]" style={{ backgroundColor: '#FFFFFF' }}>
@@ -109,8 +111,8 @@ const Profile = () => {
         {/* Profile Card */}
         <div className="flex items-center gap-4 py-4 px-[20px]">
           <div className="w-[80px] h-[80px] rounded-full bg-muted overflow-hidden flex-shrink-0">
-            {profileData.profileImage ? (
-              <img src={profileData.profileImage} alt="프로필" className="w-full h-full object-cover" />
+            {profileData.image_url ? (
+              <img src={profileData.image_url} alt="프로필" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-primary/30 to-primary/10" />
             )}
@@ -118,15 +120,18 @@ const Profile = () => {
           <div className="flex-1">
             <div className="flex items-center gap-[10px]">
               <span className="text-[20px] tracking-[-0.02em] font-bold text-[hsl(240,7%,10%)]">{profileData.name}</span>
-              <span className="text-[16px] tracking-[-0.02em] font-normal text-[hsl(223,5%,46%)]">{profileData.employmentType}</span>
+              <span className="text-[16px] tracking-[-0.02em] font-normal text-[hsl(223,5%,46%)]">{profileData.employee_type}</span>
             </div>
             <div className="mt-1">
               <span className="inline-flex items-center justify-center w-[199px] h-[28px] rounded-[4px] bg-primary/10 text-primary text-[14px] tracking-[-0.02em] font-medium">
-                컴포즈커피 노량진점 입사 +{profileData.joinDays}일
+                {profileData.store_name} 입사 +{profileData.days_since_joined}일
               </span>
             </div>
           </div>
-          <button className="p-2 self-start mt-1" onClick={() => navigate("/profile/edit")}>
+          <button
+            className="p-2 self-start mt-1"
+            onClick={() => navigate("/employee/profile/edit", { state: { profileData } })}
+          >
             <Pencil className="w-6 h-6 text-muted-foreground" />
           </button>
         </div>
@@ -136,17 +141,17 @@ const Profile = () => {
         <section className="py-5 px-[20px]">
           <h2 className="text-[20px] tracking-[-0.02em] font-bold text-[hsl(210,5%,16%)] mb-4">인적 사항</h2>
           <div className="space-y-3">
-            <InfoRow label="생년월일" value={`${profileData.personal.birthDate} (${profileData.personal.age}세)`} />
-            <InfoRow label="성별" value={profileData.personal.gender} />
-            <InfoRow label="전화번호" value={profileData.personal.phone} />
-            <InfoRow label="은행" value={profileData.personal.bank} />
+            <InfoRow label="생년월일" value={`${profileData.birth ?? '미입력'} (${profileData.age}세)`} />
+            <InfoRow label="성별" value={profileData.gender ?? '-'} />
+            <InfoRow label="전화번호" value={profileData.phone} />
+            <InfoRow label="은행" value={profileData.bank ?? '-'} />
             <div className="flex items-start">
               <span className="text-[16px] tracking-[-0.02em] font-medium text-[hsl(223,5%,46%)] w-[100px] flex-shrink-0 pt-0.5">계좌번호</span>
               <button
                 onClick={handleCopyAccount}
                 className="text-[16px] tracking-[-0.02em] font-medium text-[hsl(210,5%,16%)] underline underline-offset-2 decoration-foreground/30"
               >
-                {profileData.personal.accountNumber}
+                {profileData.account_number}
               </button>
             </div>
           </div>
@@ -157,16 +162,15 @@ const Profile = () => {
         <section className="py-5 px-[20px]">
           <h2 className="text-[20px] tracking-[-0.02em] font-bold text-[hsl(210,5%,16%)] mb-4">계약 정보</h2>
           <div className="space-y-3">
-            <InfoRow label="고용형태" value={profileData.contract.employmentType} />
-            <InfoRow label="입사일" value={`${profileData.contract.joinDate} (+${profileData.contract.joinDays}일)`} />
-            {profileData.contract.probation && (
-              <InfoRow label="수습" value={profileData.contract.probation} />
-            )}
-            <InfoRow label="급여주기" value={profileData.contract.salaryType} />
-            <InfoRow label="시급" value={profileData.contract.hourlyWage} />
-            <InfoRow label="급여일" value={profileData.contract.salaryDay} />
+            <InfoRow label="고용형태" value={profileData.employee_type ?? '-'} />
+            <InfoRow label="입사일" value={`${profileData.joined_at} (+${profileData.days_since_joined}일)`} />
+            {profileData.is_probation && <InfoRow label="수습" value="수습 적용" />}
+            <InfoRow label="급여주기" value={profileData.salary_cycle ?? '-'} />
+            <InfoRow label="시급" value={profileData.hourly_rate ? `${profileData.hourly_rate.toLocaleString()}원` : '-'} />
+            <InfoRow label="급여일" value={profileData.salary_day ? `${profileData.salary_day}일` : '-'} />
+
             {/* 근무일 */}
-            <div className="flex items-start">
+            {/* <div className="flex items-start">
               <span className="text-[16px] tracking-[-0.02em] font-medium text-[hsl(223,5%,46%)] w-[100px] flex-shrink-0 pt-0.5">근무일</span>
               <div className="flex-1 space-y-2">
                 {profileData.contract.schedule.map((s, i) => (
@@ -186,7 +190,7 @@ const Profile = () => {
                   </div>
                 ))}
               </div>
-            </div>
+            </div> */}
           </div>
         </section>
 
@@ -230,21 +234,32 @@ const Profile = () => {
             <div className="flex items-start">
               <span className="text-[16px] tracking-[-0.02em] font-medium text-[hsl(223,5%,46%)] w-[100px] flex-shrink-0 pt-0.5">소득세</span>
               <div className="flex-1 space-y-1">
-                {profileData.tax.incomeTax.map((item, i) => (
-                  <p key={i} className="text-[16px] tracking-[-0.02em] font-medium text-[hsl(210,5%,16%)]">
-                    {item.label} <span className="font-normal text-[hsl(223,5%,46%)]">{item.rate}</span>
-                  </p>
-                ))}
+                <p className="text-[16px] tracking-[-0.02em] font-medium text-[hsl(210,5%,16%)]">
+                  소득세 <span className="font-normal text-[hsl(223,5%,46%)]">{profileData.income_tax != null ? `${profileData.income_tax}%` : '-'}</span>
+                </p>
+                <p className="text-[16px] tracking-[-0.02em] font-medium text-[hsl(210,5%,16%)]">
+                  지방소득세 <span className="font-normal text-[hsl(223,5%,46%)]">{profileData.local_income_tax != null ? `${profileData.local_income_tax}%` : '-'}</span>
+                </p>
               </div>
             </div>
             <div className="flex items-start">
               <span className="text-[16px] tracking-[-0.02em] font-medium text-[hsl(223,5%,46%)] w-[100px] flex-shrink-0 pt-0.5">4대 보험</span>
               <div className="flex-1 space-y-1">
-                {profileData.tax.insurance.map((item, i) => (
-                  <p key={i} className="text-[16px] tracking-[-0.02em] font-medium text-[hsl(210,5%,16%)]">
-                    {item.label} <span className="font-normal text-[hsl(223,5%,46%)]">{item.rate}</span>
-                  </p>
-                ))}
+                <p className="text-[16px] tracking-[-0.02em] font-medium text-[hsl(210,5%,16%)]">
+                  국민연금 <span className="font-normal text-[hsl(223,5%,46%)]">{profileData.national_pension_tax != null ? `${profileData.national_pension_tax}%` : '-'}</span>
+                </p>
+                <p className="text-[16px] tracking-[-0.02em] font-medium text-[hsl(210,5%,16%)]">
+                  건강보험 <span className="font-normal text-[hsl(223,5%,46%)]">{profileData.health_insurance_tax != null ? `${profileData.health_insurance_tax}%` : '-'}</span>
+                </p>
+                <p className="text-[16px] tracking-[-0.02em] font-medium text-[hsl(210,5%,16%)]">
+                  장기요양 <span className="font-normal text-[hsl(223,5%,46%)]">{profileData.long_term_care_tax != null ? `${profileData.long_term_care_tax}%` : '-'}</span>
+                </p>
+                <p className="text-[16px] tracking-[-0.02em] font-medium text-[hsl(210,5%,16%)]">
+                  고용보험 <span className="font-normal text-[hsl(223,5%,46%)]">{profileData.employment_insurance_tax != null ? `${profileData.employment_insurance_tax}%` : '-'}</span>
+                </p>
+                <p className="text-[16px] tracking-[-0.02em] font-medium text-[hsl(210,5%,16%)]">
+                  산재보험 <span className="font-normal text-[hsl(223,5%,46%)]">{profileData.industrial_accident_tax != null ? `${profileData.industrial_accident_tax}%` : '-'}</span>
+                </p>
               </div>
             </div>
           </div>
@@ -255,24 +270,15 @@ const Profile = () => {
         <section className="py-5 px-[20px]">
           <div className="flex items-center mb-4">
             <h2 className="text-[20px] tracking-[-0.02em] font-bold text-[hsl(210,5%,16%)] w-[100px] flex-shrink-0">계약서</h2>
-            <span className={`inline-flex items-center gap-1.5 text-[14px] tracking-[-0.02em] font-medium ${profileData.documents.allSubmitted ? "text-[hsl(145,63%,42%)]" : "text-destructive"
-              }`}>
+            <span className="inline-flex items-center gap-1.5 text-[14px] tracking-[-0.02em] font-medium text-destructive">
               <CheckCircle2 className="w-5 h-5" />
-              {profileData.documents.allSubmitted ? "필수 계약서 제출 완료" : "필수 계약서 제출 미완료"}
+              필수 계약서 제출 미완료
             </span>
           </div>
           <div className="space-y-3">
-            {profileData.documents.items.map((doc) => (
-              <div key={doc.label} className="flex items-center">
-                <span className="text-[16px] tracking-[-0.02em] font-medium text-[hsl(223,5%,46%)] w-[100px] flex-shrink-0">{doc.label}</span>
-                <button
-                  onClick={() => setViewingDoc(doc.fileName)}
-                  className="text-[16px] tracking-[-0.02em] text-primary font-medium underline underline-offset-2"
-                >
-                  {doc.fileName}
-                </button>
-              </div>
-            ))}
+            <InfoRow label="근로계약서" value={profileData.employment_contract ?? '미등록'} />
+            <InfoRow label="건강진단서" value={profileData.health_certificate ?? '미등록'} />
+            <InfoRow label="이력서" value={profileData.resume ?? '미등록'} />
           </div>
         </section>
 
@@ -295,7 +301,7 @@ const Profile = () => {
           <div className="px-6 py-8 flex flex-col items-center gap-3">
             <Copy className="w-8 h-8 text-primary" />
             <p className="text-[16px] font-semibold text-[hsl(210,5%,16%)]">계좌번호가 복사되었습니다</p>
-            <p className="text-[14px] text-[hsl(223,5%,46%)]">{profileData.personal.bank} {profileData.personal.accountNumber}</p>
+            <p className="text-[14px] text-[hsl(223,5%,46%)]">{profileData.bank} {profileData.account_number}</p>
             <button
               onClick={() => setAccountSheetOpen(false)}
               className="mt-3 w-full py-3.5 rounded-xl bg-primary text-primary-foreground text-[15px] font-semibold"

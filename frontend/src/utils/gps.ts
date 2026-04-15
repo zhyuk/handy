@@ -1,21 +1,19 @@
 import { Geolocation } from '@capacitor/geolocation';
 
-export async function getCurrentLocation() {
-    const perm = await Geolocation.requestPermissions();
-    console.log("perm: ", perm);
-
-    if (perm.location !== 'granted') {
-        throw new Error("위치 권한 필요");
-    }
-
-    const pos = await Geolocation.getCurrentPosition({
-        enableHighAccuracy: true,   // GPS 위성 사용
-        timeout: 40000,
-        maximumAge: 5000
+export const getCurrentLocation = (): Promise<{ lat: number; lng: number }> =>
+  Geolocation.getCurrentPosition({
+    enableHighAccuracy: true,
+    timeout: 10000,
+  }).then((pos) => ({
+    lat: pos.coords.latitude,
+    lng: pos.coords.longitude,
+  })).catch(() => {
+    // Capacitor 실패 시 브라우저 fallback
+    return new Promise<{ lat: number; lng: number }>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => reject(new Error("위치 권한이 거부되었습니다.")),
+        { timeout: 10000, enableHighAccuracy: true }
+      );
     });
-
-    return {
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude
-    };
-}
+  });

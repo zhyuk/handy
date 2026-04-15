@@ -18,6 +18,9 @@ import { useToast } from "@/hooks/use-toast";
 import AccountSelector, { type AccountType } from "@/components/home/AccountSelector";
 import { getStoreNotices, DUMMY_POSTS } from "@/lib/boardData";
 import { getWeeklyHomeData } from "@/lib/scheduleData";
+import { breakEnd, breakStart, clockIn, clockOut } from "@/api/employee";
+import { getCurrentLocation } from "@/utils/gps";
+import { getDistanceMeters } from "@/utils/distance";
 
 const MOCK_ACCOUNTS: AccountType[] = [
   { id: "1", storeName: "메가커피 동작점", role: "직원" },
@@ -94,6 +97,10 @@ const Index = () => {
 
   const [weeklyWork, setWeeklyWork] = useState<any[]>([]);
 
+  // 매장 위치 정보
+  const [storeLocation, setStoreLocation] = useState<{ lat: number; lng: number; radius: number } | null>(null);
+
+
   useEffect(() => {
     const getTodayWork = async () => {
       try {
@@ -145,9 +152,43 @@ const Index = () => {
       } catch (err) { }
     };
 
+    const getWorkStatus = async () => {
+      try {
+        const res = await fetch('/api/employee/work/status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ employee_id: 1 })
+        });
+        const data = await res.json();
+
+        if (res.ok && data.status) {
+          if (data.status === "working") setAttendanceStatus("working");
+          else if (data.status === "off_work") setAttendanceStatus("off_work");
+          else if (data.status === "on_break") setAttendanceStatus("on_break");
+        }
+      } catch (err) {
+      } finally {
+        setStatusLoaded(true);
+      }
+    };
+
+    const getStoreLocation = async () => {
+      try {
+        const res = await fetch('/api/common/store/map', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ store_id: 1 })
+        });
+        const data = await res.json();
+        if (res.ok) setStoreLocation(data);
+      } catch (err) { }
+    };
+
     getTodayWork();
     getNotice();
     getWeeklyWork();
+    getWorkStatus();
+    getStoreLocation();
   }, []);
 
   useEffect(() => {
@@ -157,6 +198,7 @@ const Index = () => {
 
   // Attendance state management
   const [attendanceStatus, setAttendanceStatus] = useState<AttendanceStatus>("before_work");
+  const [statusLoaded, setStatusLoaded] = useState(false);
   const [clockInTime, setClockInTime] = useState<string | undefined>();
   const [breakStartTime, setBreakStartTime] = useState<string | undefined>();
   const [breakEndTime, setBreakEndTime] = useState<string | undefined>();
@@ -175,26 +217,30 @@ const Index = () => {
     return `${String(n.getHours()).padStart(2, "0")}:${String(n.getMinutes()).padStart(2, "0")}`;
   };
 
-  const handleClockIn = useCallback(() => {
+  const handleClockIn = useCallback(async () => {
+    await clockIn(1);
     setClockInTime(getNowTime());
     setAttendanceStatus("working");
     setMapDialogOpen(false);
     toast({ description: "출근을 완료 했어요. 오늘 근무도 파이팅!", duration: 2000 });
   }, [toast]);
 
-  const handleClockOut = useCallback(() => {
+  const handleClockOut = useCallback(async () => {
+    await clockOut(1);
     setAttendanceStatus("off_work");
     setMapDialogOpen(false);
     toast({ description: "퇴근을 완료 했어요. 오늘도 수고하셨어요!", duration: 2000 });
   }, [toast]);
 
-  const handleBreakStart = useCallback(() => {
+  const handleBreakStart = useCallback(async () => {
+    await breakStart(1);
     setBreakStartTime(getNowTime());
     setAttendanceStatus("on_break");
     setBreakDialogOpen(false);
   }, []);
 
-  const handleBreakEnd = useCallback(() => {
+  const handleBreakEnd = useCallback(async () => {
+    await breakEnd(1);
     setBreakEndTime(getNowTime());
     setAttendanceStatus("break_done");
     setBreakDialogOpen(false);
@@ -289,67 +335,48 @@ const Index = () => {
       <p className="px-5 py-3" style={{ fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: '#292B2E' }}>{formatDate()}</p>
 
       {(() => {
-
-        if (scheduleLoading) {
-          return (
-            <div className="mx-5 h-[180px] rounded-2xl bg-muted animate-pulse" />
-          );
-        }
-        // 휴무 처리
-        if (!scheduleStart || !scheduleEnd) {
-          return (
-            <AttendanceCard
-              status={"day_off" as AttendanceStatus}
-              scheduleStart="--:--"
-              scheduleEnd="--:--"
-              onClockIn={() => {
-                if (isCurrentlyLate) setWasLate(true);
-                openClockInDialog();
-              }}
-              onClockOut={() => { }}
-              onBreakStart={() => { }}
-              onBreakEnd={() => { }}
-              onSubstituteClockIn={handleSubstituteClockIn}
-            />
-          );
-        }
-
         const now = new Date();
         const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-        const schedStartSec = parseTimeToSec(scheduleStart);
-        const schedEndSec = parseTimeToSec(scheduleEnd);
 
-        const isCurrentlyLate =
-          attendanceStatus === "before_work" && nowSec > schedStartSec && nowSec < schedEndSec;
-        const isCurrentlyAbsent =
-          attendanceStatus === "before_work" &&
-          nowSec >= schedEndSec &&
-          !wasAbsent;
-        const isOvertime =
-          (attendanceStatus === "working" || attendanceStatus === "break_done") &&
-          nowSec >= schedEndSec &&
-          !wasAbsent;
+        // 오늘 근무 일정 있는지 확인
+        const hasSchedule = !scheduleLoading && workSchedule !== null;
 
-        const effectiveStatus: AttendanceStatus = isCurrentlyAbsent
-          ? "absent"
-          : isCurrentlyLate
-            ? "late"
-            : isOvertime
-              ? "overtime"
-              : attendanceStatus;
+        // 스케줄 있으면 파싱, 없으면 null
+        const schedStart = hasSchedule ? workSchedule!.work_start.slice(0, 5) : null; // "10:00"
+        const schedEnd = hasSchedule ? workSchedule!.work_end.slice(0, 5) : null;
+
+        const schedStartSec = schedStart ? parseTimeToSec(schedStart) : null;
+        const schedEndSec = schedEnd ? parseTimeToSec(schedEnd) : null;
+
+        const isCurrentlyLate = hasSchedule && attendanceStatus === "before_work" && nowSec > schedStartSec! && nowSec < schedEndSec!;
+        const isCurrentlyAbsent = hasSchedule && attendanceStatus === "before_work" && nowSec >= schedEndSec!;
+        const isOvertime = hasSchedule && (attendanceStatus === "working" || attendanceStatus === "break_done") && nowSec >= schedEndSec! && !wasAbsent;
+
+        const effectiveStatus: AttendanceStatus = !hasSchedule && attendanceStatus === "before_work"
+          ? "holiday"
+          : isCurrentlyAbsent
+            ? "absent"
+            : isCurrentlyLate
+              ? "late"
+              : isOvertime
+                ? "overtime"
+                : attendanceStatus;
 
         return (
           <AttendanceCard
             status={effectiveStatus}
-            scheduleStart={scheduleStart}
-            scheduleEnd={scheduleEnd}
+            scheduleStart={schedStart ?? undefined}
+            scheduleEnd={schedEnd ?? undefined}
             clockInTime={clockInTime}
             breakStartTime={breakStartTime}
             breakEndTime={breakEndTime}
             wasLate={wasLate || isCurrentlyLate}
             wasAbsent={wasAbsent}
             onClockIn={() => {
-              if (isCurrentlyAbsent) {
+              if (!hasSchedule) {
+                // 무일정 출근
+                setUnscheduledDialogOpen(true);
+              } else if (isCurrentlyAbsent) {
                 setWasAbsent(true);
                 setUnscheduledDialogOpen(true);
               } else {
@@ -387,7 +414,7 @@ const Index = () => {
 
       {/* Weekly schedule */}
       <div className="mt-8">
-        <WeeklySchedule dateRange={buildDateRange()} days={buildWeeklyDays()}/>
+        <WeeklySchedule dateRange={buildDateRange()} days={buildWeeklyDays()} />
       </div>
 
       {/* Salary preview */}
@@ -420,6 +447,9 @@ const Index = () => {
         type={mapDialogType}
         onConfirm={mapDialogType === "clock_in" ? handleClockIn : handleClockOut}
         onCancel={() => setMapDialogOpen(false)}
+        storeLat={storeLocation?.lat ?? 0}
+        storeLng={storeLocation?.lng ?? 0}
+        storeRadius={storeLocation?.radius ?? 100}
       />
       <BreakConfirmDialog
         open={breakDialogOpen}

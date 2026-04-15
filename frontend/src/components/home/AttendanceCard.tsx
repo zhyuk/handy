@@ -15,8 +15,8 @@ export type AttendanceStatus =
 
 interface AttendanceCardProps {
   status: AttendanceStatus;
-  scheduleStart: string; // "08:00"
-  scheduleEnd: string;   // "13:00"
+  scheduleStart?: string; // "08:00"
+  scheduleEnd?: string;   // "13:00"
   clockInTime?: string;  // "07:51"
   breakStartTime?: string;
   breakEndTime?: string;
@@ -74,12 +74,16 @@ const AttendanceCard = ({
   onSubstituteClockIn,
 }: AttendanceCardProps) => {
   const [now, setNow] = useState(new Date());
-  const totalMinutes = getMinutesBetween(scheduleStart, scheduleEnd);
+  const totalMinutes = scheduleStart && scheduleEnd ? getMinutesBetween(scheduleStart, scheduleEnd) : 0;
 
-  // Calculate progress percentage (wall-clock based, always relative to scheduleStart-scheduleEnd)
   const totalSec = totalMinutes * 60;
-  const schedStartSec = (() => { const s = parseTime(scheduleStart); return s.hours * 3600 + s.minutes * 60; })();
+  const schedStartSec = scheduleStart ? (() => { const s = parseTime(scheduleStart); return s.hours * 3600 + s.minutes * 60; })() : 0;
   const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const getProgress = useCallback(() => {
     if (status === "holiday" || status === "before_work") return 0;

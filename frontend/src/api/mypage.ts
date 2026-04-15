@@ -1,0 +1,71 @@
+import { list } from 'postcss';
+import apiClient from './axios'
+
+
+export async function changeInfo(name: string, bank: string, accountNumber: string) {
+    try {
+        const response = await fetch("/api/employee/mypage/edit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, bank, accountNumber }),
+        });
+
+        // 응답이 성공(200 OK)이 아닐 경우
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({})); // 에러 바디 파싱
+            const status = response.status;
+
+            if (status === 401) {
+                // 백엔드에서 던진 "기존 비밀번호가 일치하지 않습니다" 메시지 처리
+                throw new Error(errorData.detail || "기존 비밀번호가 일치하지 않아요.");
+            } else if (status === 404) {
+                throw new Error("사용자 정보를 찾을 수 없습니다.");
+            } else {
+                throw new Error("서버 오류가 발생했어요. 다시 시도해주세요.");
+            }
+        }
+
+        return await response.json();
+    } catch (err: any) {
+        // 네트워크 에러나 위에서 던진 Error 객체를 다시 던짐
+        console.error("비밀번호 변경 API 에러:", err);
+        throw err;
+    }
+}
+
+
+// 비밀번호 변경 함수
+export async function changePassword(oldPassword: string, newPassword: string) {
+    try {
+        const response = await fetch("/api/common/password/change", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                old_password: oldPassword,
+                new_password: newPassword,
+                user_id: 1 // TODO: 나중에 로그인된 실제 유저 ID로 교체하세요!
+            }),
+        });
+
+        // 응답이 성공(200 OK)이 아닐 경우
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({})); // 에러 바디 파싱
+            const status = response.status;
+
+            if (status === 401) {
+                // 백엔드에서 던진 "기존 비밀번호가 일치하지 않습니다" 메시지 처리
+                throw new Error(errorData.detail || "기존 비밀번호가 일치하지 않아요.");
+            } else if (status === 404) {
+                throw new Error("사용자 정보를 찾을 수 없습니다.");
+            } else {
+                throw new Error("서버 오류가 발생했어요. 다시 시도해주세요.");
+            }
+        }
+
+        return await response.json();
+    } catch (err: any) {
+        // 네트워크 에러나 위에서 던진 Error 객체를 다시 던짐
+        console.error("비밀번호 변경 API 에러:", err);
+        throw err;
+    }
+}

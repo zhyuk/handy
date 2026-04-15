@@ -26,7 +26,7 @@ const SalaryPreview = ({ userName, month, totalAmount, stores }: SalaryPreviewPr
             이번달 <span style={{ color: '#4261FF' }}>예상 급여</span>에요
           </p>
         </div>
-        <button onClick={() => navigate("/salary")} className="flex items-center text-xs text-muted-foreground mb-0.5">
+        <button onClick={() => navigate("/employee/salary")} className="flex items-center text-xs text-muted-foreground mb-0.5">
           더보기 <ChevronRight className="h-3.5 w-3.5" />
         </button>
       </div>
