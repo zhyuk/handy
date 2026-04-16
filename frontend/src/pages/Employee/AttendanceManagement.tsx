@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -7,6 +7,7 @@ import MonthlySummary from "@/components/attendance/MonthlySummary";
 import AttendanceDetailSheet from "@/components/attendance/AttendanceDetailSheet";
 import type { AttendanceDetail, AttendanceStatus } from "@/components/attendance/AttendanceDetailSheet";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { fetchWorkLogRequests } from "@/api/employee";
 
 type AttendanceTab = "calendar" | "history" | "edit_requests";
 type DayStatus = "normal" | "late" | "absent" | "overtime" | "vacation" | "holiday" | "before_work";
@@ -67,49 +68,6 @@ interface EditRequest {
 
 const DAYS_OF_WEEK = ["일", "월", "화", "수", "목", "금", "토"];
 const DAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
-const HOLIDAY_DAYS: number[] = [3, 10, 17];
-
-const MOCK_CALENDAR: Record<number, DayData> = {
-  1: { date: 1, hours: "3h 20m", lateMinutes: 10, status: "late", startTime: "08:10", endTime: "11:30", breakMinutes: 0, overtimeMinutes: 0, isClosed: true, sheetStatus: "근무완료", shiftTypes: ["오픈"] },
-  2: { date: 2, status: "absent", startTime: "00:00", endTime: "00:00", breakMinutes: 0, overtimeMinutes: 0, isClosed: true, sheetStatus: "결근", shiftTypes: ["미들"] },
-  6: { date: 6, hours: "4h", status: "normal", startTime: "08:00", endTime: "13:00", breakMinutes: 0, overtimeMinutes: 0, isClosed: true, sheetStatus: "근무완료", shiftTypes: ["오픈"] },
-  7: { date: 7, hours: "4h", status: "normal", startTime: "08:00", endTime: "13:00", breakMinutes: 0, overtimeMinutes: 0, isClosed: true, sheetStatus: "근무완료", shiftTypes: ["미들"] },
-  8: { date: 8, hours: "4h", extraMinutes: 30, status: "overtime", startTime: "08:00", endTime: "12:30", breakMinutes: 0, overtimeMinutes: 30, isClosed: true, sheetStatus: "퇴근", shiftTypes: ["미들"] },
-  9: { date: 9, hours: "4h", status: "normal", startTime: "08:00", endTime: "13:00", breakMinutes: 0, overtimeMinutes: 0, isClosed: true, sheetStatus: "근무완료", shiftTypes: ["마감"] },
-  13: { date: 13, hours: "4h", status: "normal", startTime: "08:00", endTime: "13:00", breakMinutes: 0, overtimeMinutes: 0, isClosed: true, sheetStatus: "근무완료", shiftTypes: ["오픈", "미들"] },
-  14: { date: 14, hours: "4h", status: "normal", startTime: "08:00", endTime: "13:00", breakMinutes: 0, overtimeMinutes: 0, isClosed: true, sheetStatus: "근무완료", shiftTypes: ["미들"] },
-  15: { date: 15, hours: "4h", status: "normal", startTime: "08:00", endTime: "13:00", breakMinutes: 0, overtimeMinutes: 0, isClosed: true, sheetStatus: "근무완료", shiftTypes: ["오픈", "미들", "마감"] },
-  16: { date: 16, hours: "4h", status: "normal", startTime: "08:00", endTime: "13:00", breakMinutes: 0, overtimeMinutes: 0, isClosed: true, sheetStatus: "근무완료", shiftTypes: ["마감"] },
-  20: { date: 20, hours: "5h", extraMinutes: 10, status: "overtime", startTime: "07:50", endTime: "13:10", breakMinutes: 30, overtimeMinutes: 10, isClosed: true, sheetStatus: "퇴근", shiftTypes: ["오픈", "마감"] },
-  21: { date: 21, hours: "4h", status: "normal", startTime: "08:00", endTime: "13:00", breakMinutes: 0, overtimeMinutes: 0, isClosed: true, sheetStatus: "근무완료", shiftTypes: ["마감"] },
-  22: { date: 22, hours: "4h", status: "normal", startTime: "08:00", endTime: "13:00", breakMinutes: 0, overtimeMinutes: 0, isClosed: true, sheetStatus: "근무완료", shiftTypes: ["오픈"] },
-  23: { date: 23, hours: "4h", status: "normal", startTime: "08:00", endTime: "13:00", breakMinutes: 0, overtimeMinutes: 0, isClosed: true, sheetStatus: "근무완료", shiftTypes: ["미들"] },
-  26: { date: 26, hours: "4h", status: "normal", startTime: "08:00", endTime: "13:00", breakMinutes: 0, overtimeMinutes: 0, isClosed: true, sheetStatus: "근무완료", shiftTypes: ["오픈"] },
-  27: { date: 27, hours: "4h", status: "normal", startTime: "08:00", endTime: "13:00", breakMinutes: 0, overtimeMinutes: 0, isClosed: true, sheetStatus: "근무완료", shiftTypes: ["미들"] },
-  29: { date: 29, status: "vacation", startTime: "00:00", endTime: "00:00", breakMinutes: 0, overtimeMinutes: 0, isClosed: true, sheetStatus: "휴가", shiftTypes: [] },
-  30: { date: 30, hours: "4h", status: "normal", startTime: "08:00", endTime: "13:00", breakMinutes: 0, overtimeMinutes: 0, isClosed: true, sheetStatus: "근무완료", shiftTypes: ["마감"] },
-};
-
-const MOCK_EDIT_REQUESTS: EditRequest[] = [
-  {
-    id: "1", requestStatus: "대기중", requestType: "출·퇴근 시간 변경", requestedAt: 3,
-    original: { date: "2025년 11월 16일 (목)", startTime: "13:00", endTime: "22:00" },
-    desired: { date: "2025년 11월 16일 (금)", startTime: "13:00", endTime: "18:30" },
-    reason: "퇴근을 깜빡하고 못 눌렀습니다.",
-  },
-  {
-    id: "2", requestStatus: "승인", requestType: "휴게 시간 변경", requestedAt: 2,
-    original: { date: "2025년 11월 16일 (목)", startTime: "13:00", endTime: "17:00", breakMinutes: 2 },
-    desired: { date: "2025년 11월 16일 (금)", startTime: "13:00", endTime: "17:30", breakMinutes: 30 },
-    reason: "퇴근을 깜빡하고 못 눌렀습니다.",
-  },
-  {
-    id: "3", requestStatus: "거절", requestType: "근무 누락", requestedAt: 1,
-    original: { label: "미등록", date: "2025년 11월 16일" },
-    desired: { date: "2025년 11월 16일 (금)", startTime: "13:00", endTime: "17:30", breakMinutes: 30 },
-    reason: "퇴근을 깜빡하고 못 눌렀습니다.",
-  },
-];
 
 type FilterTab = "전체" | "출·퇴근" | "휴게" | "근무 누락";
 const FILTER_TABS: FilterTab[] = ["전체", "출·퇴근", "휴게", "근무 누락"];
@@ -120,6 +78,76 @@ const REQUEST_STATUS_STYLE: Record<RequestStatus, { bg: string; color: string }>
   "거절": { bg: '#FFEAE6', color: '#FF3D3D' },
 };
 const REQUEST_TYPE_STYLE = { bg: '#E8F3FF', color: '#4261FF' };
+
+const toMin = (t: string) => {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+};
+
+const buildCalendarFromLogs = (logs: any[]): Record<number, DayData> => {
+  const result: Record<number, DayData> = {};
+
+  logs.forEach((log) => {
+    const date = new Date(log.work_date).getDate();
+    const startTime = log.start_time?.slice(0, 5) ?? "00:00";
+    const endTime = log.end_time?.slice(0, 5) ?? "00:00";
+    const schedStart = log.sched_start?.slice(0, 5) ?? null;
+    const schedEnd = log.sched_end?.slice(0, 5) ?? null;
+
+    // 실근무 시간 계산
+    let workedMin = 0;
+    if (log.start_time && log.end_time) {
+      workedMin = toMin(endTime) - toMin(startTime);
+      if (log.break_start_time && log.break_end_time) {
+        workedMin -= toMin(log.break_end_time.slice(0, 5)) - toMin(log.break_start_time.slice(0, 5));
+      }
+    }
+
+    const hours = workedMin > 0
+      ? `${Math.floor(workedMin / 60)}h${workedMin % 60 > 0 ? ` ${workedMin % 60}m` : ""}`
+      : undefined;
+
+    // 지각: 실제 출근 > 스케줄 출근
+    const lateMin = (log.start_time && schedStart)
+      ? Math.max(0, toMin(startTime) - toMin(schedStart))
+      : 0;
+
+    // 연장: 실제 퇴근 > 스케줄 퇴근
+    const overtimeMin = (schedEnd && log.end_time)
+      ? Math.max(0, toMin(endTime) - toMin(schedEnd))
+      : 0;
+
+    let status: DayStatus = "normal";
+    if (log.status === "absent") status = "absent";
+    else if (lateMin > 0 && overtimeMin > 0) status = "overtime";
+    else if (lateMin > 0) status = "late";
+    else if (overtimeMin > 0) status = "overtime";
+
+    let sheetStatus: AttendanceStatus = "근무완료";
+    if (log.status === "absent") sheetStatus = "결근";
+    else if (log.status === "working") sheetStatus = "퇴근";
+
+    const breakMinutes = (log.break_start_time && log.break_end_time)
+      ? toMin(log.break_end_time.slice(0, 5)) - toMin(log.break_start_time.slice(0, 5))
+      : 0;
+
+    result[date] = {
+      date,
+      hours,
+      status,
+      lateMinutes: lateMin > 0 ? lateMin : undefined,
+      extraMinutes: overtimeMin > 0 ? overtimeMin : undefined,
+      startTime,
+      endTime,
+      breakMinutes,
+      overtimeMinutes: overtimeMin,
+      isClosed: log.status === "off_work",
+      sheetStatus,
+    };
+  });
+
+  return result;
+};
 
 const buildHistory = (
   year: number,
@@ -170,17 +198,70 @@ const AttendanceManagement = () => {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetDetail, setSheetDetail] = useState<AttendanceDetail | null>(null);
   const [filterTab, setFilterTab] = useState<FilterTab>("전체");
-  const [editRequests, setEditRequests] = useState<EditRequest[]>(MOCK_EDIT_REQUESTS);
+  const [editRequests, setEditRequests] = useState<EditRequest[]>([]);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [calendarData, setCalendarData] = useState<Record<number, DayData>>({});
+  const [holidayDays, setHolidayDays] = useState<number[]>([]);
 
-  // 수정 요청 완료 후 데이터 수신
+  // 수정 요청 완료 후 탭 이동 처리
   React.useEffect(() => {
-    const newRequest = location.state?.newRequest;
-    if (newRequest) {
-      setEditRequests(prev => [newRequest, ...prev]);
+    if (location.state?.newRequest) {
       setActiveTab("edit_requests");
       window.history.replaceState({}, "");
     }
+  }, []);
+
+  useEffect(() => {
+    const fetchLogs = async () => {
+      try {
+        const res = await fetch('/api/employee/work/logs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ employee_id: 1, store_id: 1, year: currentYear, month: currentMonth }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setCalendarData(buildCalendarFromLogs(data));
+          setHolidayDays(
+            data
+              .filter((log: any) => log.is_holiday)
+              .map((log: any) => new Date(log.work_date).getDate())
+          );
+        }
+      } catch (err) { }
+    };
+    fetchLogs();
+  }, [currentYear, currentMonth]);
+
+  useEffect(() => {
+    const fetchRequests = async () => {
+      try {
+        const data = await fetchWorkLogRequests(1, 1); // employee_id, store_id
+        const mapped: EditRequest[] = data.map((r: any) => ({
+          id: String(r.id),
+          requestStatus: r.status === "pending" ? "대기중" : r.status === "approved" ? "승인" : "거절",
+          requestType: r.type as RequestType,
+          requestedAt: new Date(r.created_at).getTime(),
+          original: {
+            date: r.date,
+            startTime: r.origin_start ?? undefined,
+            endTime: r.origin_end ?? undefined,
+            breakMinutes: undefined,
+          },
+          desired: {
+            date: r.date,
+            startTime: r.desired_start ?? "00:00",
+            endTime: r.desired_end ?? "00:00",
+            breakMinutes: r.desired_break ?? undefined,
+          },
+          reason: r.reason,
+        }));
+        setEditRequests(mapped);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchRequests();
   }, []);
 
   const today = new Date();
@@ -219,7 +300,7 @@ const AttendanceManagement = () => {
     calendarWeeks.push(week);
   }
 
-  const historyItems = buildHistory(currentYear, currentMonth, MOCK_CALENDAR, HOLIDAY_DAYS, isFutureDay);
+  const historyItems = buildHistory(currentYear, currentMonth, calendarData, holidayDays, isFutureDay);
 
   const normalCount = historyItems.filter(i => i.badges.some(b => b.label === "근무완료") && !i.badges.some(b => b.label === "지각" || b.label === "연장")).length;
   const lateCount = historyItems.filter(i => i.badges.some(b => b.label === "지각")).length;
@@ -227,9 +308,9 @@ const AttendanceManagement = () => {
   const absentCount = historyItems.filter(i => i.badges.some(b => b.label === "결근")).length;
 
   const openSheetByDay = (day: number) => {
-    const isHoliday = HOLIDAY_DAYS.includes(day);
+    const isHoliday = holidayDays.includes(day);
     const isFuture = isFutureDay(day);
-    const dayData = MOCK_CALENDAR[day];
+    const dayData = calendarData[day];
     const dayOfWeek = DAY_NAMES[new Date(currentYear, currentMonth - 1, day).getDay()];
 
     if (isHoliday) {
@@ -335,11 +416,11 @@ const AttendanceManagement = () => {
                       </div>
                     );
                   }
-                  const dayData = MOCK_CALENDAR[day];
+                  const dayData = calendarData[day];
                   const isToday = isCurrentMonth && day === todayDate;
                   const isSunday = di === 0;
                   const isSaturday = di === 6;
-                  const isHoliday = HOLIDAY_DAYS.includes(day);
+                  const isHoliday = holidayDays.includes(day);
                   const isFuture = isFutureDay(day);
                   return (
                     <div key={di} className="flex flex-col items-center py-1.5 min-h-[90px] cursor-pointer" onClick={() => openSheetByDay(day)}>
@@ -403,8 +484,6 @@ const AttendanceManagement = () => {
         </div>
       )}
 
-      {/* ... 상단 생략 ... */}
-
       {/* 수정 요청 내역 탭 */}
       {activeTab === "edit_requests" && (
         <div className="pb-8" style={{ backgroundColor: '#F7F7F8', minHeight: '100vh' }}>
@@ -436,8 +515,6 @@ const AttendanceManagement = () => {
                       </button>
                     )}
                   </div>
-
-                  {/* 1. 기존 일정 섹션 (박스 내부의 '기존 일정' 텍스트 제거) */}
                   <p style={{ fontSize: '13px', fontWeight: 500, color: '#AAB4BF', letterSpacing: '-0.02em', marginBottom: '6px' }}>기존 일정</p>
                   <div className="rounded-xl px-4 py-3 mb-3" style={{ backgroundColor: '#F7F7F8' }}>
                     <div className="flex items-center gap-2 flex-wrap">
@@ -448,15 +525,11 @@ const AttendanceManagement = () => {
                     </div>
                     {req.original.breakMinutes !== undefined && <p style={{ fontSize: '13px', color: '#70737B', letterSpacing: '-0.02em' }}>[휴게] {req.original.breakMinutes}분</p>}
                   </div>
-
-                  {/* 2. 변경 일정 섹션 (박스 내부의 '변경 일정' 텍스트 제거) */}
                   <p style={{ fontSize: '13px', fontWeight: 500, color: '#AAB4BF', letterSpacing: '-0.02em', marginBottom: '6px' }}>변경 일정</p>
                   <div className="rounded-xl px-4 py-3 mb-3" style={{ backgroundColor: '#F0F7FF' }}>
                     <p style={{ fontSize: '13px', color: '#4261FF', letterSpacing: '-0.02em' }}>{req.desired.date} | {req.desired.startTime} - {req.desired.endTime}</p>
                     {req.desired.breakMinutes !== undefined && <p style={{ fontSize: '13px', color: '#4261FF', letterSpacing: '-0.02em' }}>[휴게] {req.desired.breakMinutes}분</p>}
                   </div>
-
-                  {/* 3. 변경 요청 사유 섹션 (사유 텍스트 스타일 수정: 13px, #70737B) */}
                   <p style={{ fontSize: '13px', fontWeight: 500, color: '#AAB4BF', letterSpacing: '-0.02em', marginBottom: '4px' }}>변경 요청 사유</p>
                   <p style={{ fontSize: '13px', fontWeight: 400, color: '#70737B', letterSpacing: '-0.02em' }}>{req.reason}</p>
                 </div>

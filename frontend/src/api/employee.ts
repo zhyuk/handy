@@ -188,4 +188,50 @@ export async function breakEnd(store_id: number) {
         console.error("회원 정보 조회 에러:", err);
         throw err;
     }
+}
+
+// 근무 기록 수정 
+export async function requestWorkLogChange(workLogData: {
+    store_id: number,
+    employee_id: number,
+    type: string,
+    date: string,
+    origin_start: string,
+    origin_end: string,
+    desired_start: string,
+    desired_end: string,
+    desired_break: string,
+    reason: string
+}) {
+
+    try {
+        const res = await fetch(`/api/employee/worklog/request`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(workLogData)
+        });
+
+        if (!res.ok) {
+            if (res.status === 409) {
+                const data = await res.json();
+                throw new Error("409:" + data.detail);
+            }
+            throw new Error(String(res.status));
+        }
+
+        return await res.json();
+
+    } catch (err) {
+        console.error("회원 정보 조회 에러:", err);
+        throw err;
+    }
 } 
+
+// 출근 기록 수정내역 조회
+export const fetchWorkLogRequests = async (employeeId: number, storeId: number) => {
+  const res = await fetch(`/api/employee/worklog/request?employee_id=${employeeId}&store_id=${storeId}`);
+  if (!res.ok) throw new Error(String(res.status));
+  return res.json();
+};

@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronDown, X, Check } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { requestWorkLogChange } from "@/api/employee";
 
 type EditStep = "reason" | "detail";
 
@@ -278,11 +279,10 @@ const ReasonInputSheet = ({ open, value, onClose, onConfirm }: ReasonInputSheetP
           <button
             disabled={!text.trim()}
             onClick={() => onConfirm(text)}
-            className={`flex-1 h-12 rounded-xl font-semibold text-[15px] ${
-              text.trim()
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground cursor-not-allowed"
-            }`}
+            className={`flex-1 h-12 rounded-xl font-semibold text-[15px] ${text.trim()
+              ? "bg-primary text-primary-foreground"
+              : "bg-muted text-muted-foreground cursor-not-allowed"
+              }`}
           >
             입력하기
           </button>
@@ -366,40 +366,40 @@ const AttendanceRecordEdit = () => {
 
   const handleSubmit = () => setConfirmOpen(true);
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     setConfirmOpen(false);
     toast.success("수정 요청이 완료 되었어요");
 
     const dateStr = detail
-      ? `${detail.year}년 ${detail.month}월 ${detail.date}일 (${detail.dayOfWeek})`
+      ? `${detail.year}-${String(detail.month).padStart(2, "0")}-${String(detail.date).padStart(2, "0")}`
       : "";
 
-    const newRequest = {
-      id: String(Date.now()),
-      requestStatus: "대기중" as const,
-      requestType: (
-        isMissingWork ? "근무 누락" :
-        isBreakChange ? "휴게 시간 변경" :
-        "출·퇴근 시간 변경"
-      ) as "출·퇴근 시간 변경" | "휴게 시간 변경" | "근무 누락",
-      requestedAt: Date.now(),
-      original: {
-        label: isUnregistered ? "미등록" : undefined,
+    try {
+      await requestWorkLogChange({
+        store_id: 1,         // 본인 코드에서 가져오세요
+        employee_id: 1,   // 본인 코드에서 가져오세요
+        type: isMissingWork ? "근무 누락" : isBreakChange ? "휴게 시간 변경" : "출·퇴근 시간 변경",
         date: dateStr,
-        startTime: isMissingWork ? undefined : detail?.startTime,
-        endTime: isMissingWork ? undefined : detail?.endTime,
-        breakMinutes: isBreakChange ? detail?.breakMinutes : undefined,
-      },
-      desired: {
-        date: dateStr,
-        startTime: startTime || "00:00",
-        endTime: endTime || "00:00",
-        breakMinutes: isBreakChange ? Number(breakMinutes) : isMissingWork ? Number(breakMinutes) : undefined,
-      },
-      reason: changeReason || breakReason || "",
-    };
+        origin_start: isMissingWork ? undefined : detail?.startTime,
+        origin_end: isMissingWork ? undefined : detail?.endTime,
+        desired_start: startTime || "00:00",
+        desired_end: endTime || "00:00",
+        desired_break: isBreakChange || isMissingWork ? String(breakMinutes) : undefined,
+        reason: changeReason || breakReason || "",
+      });
 
-    navigate("/attendance", { state: { newRequest } });
+      toast.success("수정 요청이 완료 되었어요");
+
+      navigate("/attendance");
+
+    } catch (e: any) {
+      if (e.message?.startsWith("409")) {
+        toast.error("이미 해당 날짜에 요청한 내역이 있어요.");
+        navigate("/attendance");
+      } else {
+        toast.error("수정 요청에 실패했어요. 다시 시도해주세요");
+      }
+    }
   };
 
   const openTimePicker = (target: "start" | "end") => {
