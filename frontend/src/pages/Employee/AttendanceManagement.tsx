@@ -366,7 +366,7 @@ const AttendanceManagement = () => {
     <div className="mx-auto min-h-screen max-w-lg bg-white pb-20">
       <div className="sticky top-0 z-10" style={{ backgroundColor: '#FFFFFF' }}>
         <div className="flex items-center gap-2 px-2 pt-4 pb-2">
-          <button onClick={() => navigate("/")} className="p-1"><ChevronLeft className="h-6 w-6 text-foreground" /></button>
+          <button onClick={() => navigate("/employee/home")} className="p-1"><ChevronLeft className="h-6 w-6 text-foreground" /></button>
           <h1 style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.02em', color: '#19191B' }}>출근 관리</h1>
         </div>
         <div className="flex border-b border-border px-5" style={{ gap: '24px' }}>

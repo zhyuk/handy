@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DUMMY_POSTS } from "@/lib/boardData";
+import { getNotice } from "@/api/public";
 
 type NotificationCategory = "전체" | "급여" | "일정" | "게시판" | "공지";
 

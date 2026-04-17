@@ -1,22 +1,49 @@
-import { useState, useRef } from "react";
-import { ChevronLeft, Plus, X, ChevronRight, Camera, Check } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { ChevronLeft, X, ChevronRight, Camera, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from "@/components/ui/drawer";
+import { Drawer, DrawerContent, DrawerClose } from "@/components/ui/drawer";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { getFeedback, postFeedback } from "@/api/public";
 
+// API 응답 원본 타입
+type FeedbackRaw = {
+  id: number;
+  title: string;
+  content: string;
+  image: string[] | null;
+  created_at: string;
+  status: "pending" | "completed";
+  answer?: string;
+  answered_at?: string;
+};
+
+// 컴포넌트 내부 타입
 interface FeedbackItem {
-  id: number; title: string; content: string; images: string[];
-  date: string; status: "접수" | "완료"; reply?: string; replyDate?: string;
+  id: number;
+  title: string;
+  content: string;
+  images: string[];
+  date: string;
+  status: "접수" | "완료";
+  reply?: string;
+  replyDate?: string;
 }
 
-const MOCK_FEEDBACK: FeedbackItem[] = [
-  { id: 1, title: "메인화면 좀 개선해주세요 ㅠㅠ", content: "사용해보니까 불편하네여 개선해주세용 사용해보니까 불편하네여 개선해주세용 사용해보니까 불편하네여 개선해주세용", images: [], date: "2025.03.27 15:23", status: "접수" },
-  { id: 2, title: "메인화면 좀 개선해주세요 ㅠㅠ", content: "사용해보니까 불편하네여 개선해주세용", images: [], date: "2025.03.27 15:23", status: "접수" },
-  { id: 3, title: "메인화면 좀 개선해주세요 ㅠㅠ", content: "사용해보니까 불편하네여 개선해주세용", images: [], date: "2025.03.27 15:23", status: "접수" },
-  { id: 4, title: "메인화면 좀 개선해주세요 ㅠㅠ", content: "사용해보니까 불편하네여 개선해주세용", images: [], date: "2025.03.27 15:23", status: "완료", reply: "안녕하세요 핸디 고객센터입니다 안녕하세요 핸디 고객센터입니다 안녕하세요 핸디 고객센터입니다", replyDate: "2025.04.21 16:38" },
-  { id: 5, title: "메인화면 좀 개선해주세요 ㅠㅠ", content: "사용해보니까 불편하네여 개선해주세용", images: [], date: "2025.03.27 15:23", status: "완료", reply: "안녕하세요 핸디 고객센터입니다", replyDate: "2025.04.21 16:38" },
-  { id: 6, title: "메인화면 좀 개선해주세요 ㅠㅠ", content: "사용해보니까 불편하네여 개선해주세용", images: [], date: "2025.03.27 15:23", status: "완료", reply: "안녕하세요 핸디 고객센터입니다", replyDate: "2025.04.21 16:38" },
-];
+const formatDate = (dateStr: string) => {
+  const d = new Date(dateStr);
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+};
+
+const mapFeedback = (raw: FeedbackRaw): FeedbackItem => ({
+  id: raw.id,
+  title: raw.title,
+  content: raw.content,
+  images: raw.image ?? [],
+  date: formatDate(raw.created_at),
+  status: raw.status === "pending" ? "접수" : "완료",
+  reply: raw.answer,
+  replyDate: raw.answered_at ? formatDate(raw.answered_at) : undefined,
+});
 
 const Feedback = () => {
   const navigate = useNavigate();
@@ -28,11 +55,25 @@ const Feedback = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [deleteTargetIndex, setDeleteTargetIndex] = useState<number | null>(null);
-  const [feedbackList, setFeedbackList] = useState<FeedbackItem[]>(MOCK_FEEDBACK);
+  const [feedbackList, setFeedbackList] = useState<FeedbackItem[]>([]);
   const albumInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const isFormValid = title.trim().length > 0 && content.trim().length > 0;
+
+  const member_id = 1; // TODO: JWT에서 꺼내오기
+
+  useEffect(() => {
+    const fetchFeedback = async () => {
+      try {
+        const data: FeedbackRaw[] = await getFeedback(member_id);
+        setFeedbackList(data.map(mapFeedback));
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchFeedback();
+  }, []);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -52,12 +93,18 @@ const Feedback = () => {
     setShowDeleteDialog(false);
   };
 
-  const handleSubmit = () => {
-    setFeedbackList((prev) => [{ id: Date.now(), title: title.trim(), content: content.trim(), images: [...images],
-      date: new Date().toLocaleString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).replace(/\. /g, ".").replace(".", "."),
-      status: "접수" }, ...prev]);
-    setTitle(""); setContent(""); setImages([]);
-    setShowSubmitDialog(false); setActiveTab("history");
+  const handleSubmit = async () => {
+    try {
+      await postFeedback(member_id, title.trim(), content.trim(), images);
+      setTitle(""); setContent(""); setImages([]);
+      setShowSubmitDialog(false);
+      // 목록 갱신
+      const data: FeedbackRaw[] = await getFeedback(member_id);
+      setFeedbackList(data.map(mapFeedback));
+      setActiveTab("history");
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const sheetBtnHandlers = (onClick: () => void) => ({
@@ -133,6 +180,11 @@ const Feedback = () => {
                 <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
               </button>
             ))}
+            {feedbackList.length === 0 && (
+              <div className="flex items-center justify-center py-20">
+                <span style={{ fontSize: '14px', color: '#AAB4BF' }}>건의 내역이 없어요.</span>
+              </div>
+            )}
           </div>
         </div>
       )}

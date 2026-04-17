@@ -38,6 +38,10 @@ import PasswordChange from "./pages/Employee/PasswordChange";
 import Withdrawal from "./pages/Employee/Withdrawal";
 import Announcements from "./pages/Employee/Announcements";
 import AnnouncementDetail from "./pages/Employee/AnnouncementDetail";
+import FAQ from "./pages/Employee/FAQ";
+import Notifications from "./pages/Employee/Notifications";
+import NotificationScheduleChanged from "./pages/Employee/NotificationScheduleChanged";
+import NotificationScheduleAdded from "./pages/Employee/NotificationScheduleAdded";
 
 const queryClient = new QueryClient();
 
@@ -64,17 +68,16 @@ const App = () => (
             <Route path="/board" element={<BoardList />} />
             <Route path="/board/write" element={<BoardWrite />} />
             <Route path="/board/:id" element={<BoardDetail />} />
-
             {/* 건의함 */}
             <Route path="/feedback" element={<Feedback />} />
             <Route path="/feedback/:id" element={<FeedbackDetail />} />
-
             {/* 서비스 공지사항 */}
             <Route path="/announcements" element={<Announcements />} />
             <Route path="/announcements/:id" element={<AnnouncementDetail />} />
-
             {/* 회원 탈퇴 */}
             <Route path="/withdrawal" element={<Withdrawal />} />
+            {/* FAQ */}
+            <Route path="/faq" element={<FAQ />} />
             {/* ===== 공통 기능 끝 ===== */}
 
 
@@ -101,6 +104,10 @@ const App = () => (
             <Route path="/employee/profile" element={<Profile />} />
             <Route path="/employee/profile/edit" element={<ProfileEdit />} />
             <Route path="/employee/profile/edit/password" element={<PasswordChange />} />
+
+            <Route path="/notifications" element={<Notifications />} />
+            <Route path="/notifications/schedule-changed" element={<NotificationScheduleChanged />} />
+            <Route path="/notifications/schedule-added" element={<NotificationScheduleAdded />} />
             {/* ===== 직원유형 끝 ===== */}
 
 

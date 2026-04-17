@@ -1,6 +1,8 @@
 import { ChevronLeft } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 
+const BASE_URL = import.meta.env.VITE_API_URL ?? "";
+
 const FeedbackDetail = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -30,9 +32,9 @@ const FeedbackDetail = () => {
         <button onClick={() => navigate(-1)} className="p-1">
           <ChevronLeft className="w-6 h-6 text-foreground" />
         </button>
-        <h1 style={{fontSize:'20px',fontWeight:700,letterSpacing:'-0.02em',color:'#19191B'}}>건의 내역 상세</h1>
+        <h1 style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.02em', color: '#19191B' }}>건의 내역 상세</h1>
       </div>
-      
+
 
       {/* Status banner */}
       <div className="px-5 py-3">
@@ -68,7 +70,7 @@ const FeedbackDetail = () => {
               <span className="text-sm text-muted-foreground w-16 flex-shrink-0">이미지</span>
               <div className="flex gap-2 overflow-x-auto">
                 {item.images.map((img, idx) => (
-                  <img key={idx} src={img} alt="" className="w-36 h-36 rounded-lg object-cover flex-shrink-0" />
+                  <img key={idx} src={img.startsWith('http') || img.startsWith('data:') ? img : `${BASE_URL}${img}`} alt="" className="w-36 h-36 rounded-lg object-cover flex-shrink-0" />
                 ))}
               </div>
             </div>

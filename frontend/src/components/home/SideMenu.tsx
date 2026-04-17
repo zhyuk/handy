@@ -9,16 +9,16 @@ interface SideMenuProps {
 }
 
 const MAIN_MENU = [
-  { label: "홈", path: "/" },
+  { label: "홈", path: "/employee/home" },
   { label: "출근관리", path: "/attendance" },
   { label: "일정확인", path: "/schedule" },
-  { label: "급여관리", path: "/salary" },
+  { label: "급여관리", path: "/employee/salary" },
   { label: "게시판", path: "/board" },
   { label: "마감보고", path: "/closing-report" },
 ];
 
 const SUB_MENU = [
-  { label: "내 정보", path: "/profile" },
+  { label: "내 정보", path: "/employee/profile" },
   { label: "알림", path: "/notifications" },
   { label: "공지사항", path: "/announcements" },
   { label: "자주 묻는 질문", path: "/faq" },
