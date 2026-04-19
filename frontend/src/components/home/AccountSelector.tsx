@@ -1,9 +1,13 @@
+import { setRoleLabel } from "@/utils/function";
 import { X, Check, Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export interface AccountType {
   id: string;
+  storeId: number;
   storeName: string;
-  role: "사장님" | "직원";
+  role: string;
+  employeeType: string;
 }
 
 interface AccountSelectorProps {
@@ -15,6 +19,7 @@ interface AccountSelectorProps {
 }
 
 const AccountSelector = ({ open, accounts, selectedId, onSelect, onClose }: AccountSelectorProps) => {
+  const navigate = useNavigate();
   if (!open) return null;
 
   return (
@@ -39,18 +44,16 @@ const AccountSelector = ({ open, accounts, selectedId, onSelect, onClose }: Acco
               <button
                 key={account.id}
                 onClick={() => onSelect(account)}
-                className={`flex items-center justify-between rounded-xl px-4 py-4 text-left transition-colors ${
-                  isSelected ? "bg-[hsl(var(--notice-card-bg))]" : ""
-                }`}
+                className={`flex items-center justify-between rounded-xl px-4 py-4 text-left transition-colors ${isSelected ? "bg-[hsl(var(--notice-card-bg))]" : ""
+                  }`}
               >
                 <div className="flex items-center gap-2">
                   <span className="text-base font-medium text-foreground">{account.storeName}</span>
-                  <span className={`rounded-full px-2 py-0.5 text-xs ${
-                    isSelected
-                      ? "bg-[hsl(var(--role-badge))] text-white"
-                      : "bg-muted text-muted-foreground"
-                  }`}>
-                    {account.role}
+                  <span className={`rounded-full px-2 py-0.5 text-xs ${isSelected
+                    ? "bg-[hsl(var(--role-badge))] text-white"
+                    : "bg-muted text-muted-foreground"
+                    }`}>
+                    {setRoleLabel(account.role)}
                   </span>
                 </div>
                 {isSelected && <Check className="h-5 w-5 text-[hsl(var(--role-badge))]" />}
@@ -60,7 +63,7 @@ const AccountSelector = ({ open, accounts, selectedId, onSelect, onClose }: Acco
         </div>
 
         {/* Add account */}
-        <button className="mt-4 flex items-center gap-1.5 px-4 py-3 text-base font-medium text-foreground">
+        <button className="mt-4 flex items-center gap-1.5 px-4 py-3 text-base font-medium text-foreground" onClick={() => { navigate("/onboarding/member-type") }}>
           <Plus className="h-5 w-5" />
           계정 유형 추가하기
         </button>

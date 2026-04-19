@@ -53,6 +53,7 @@ interface ProfileData {
   resume: string | null;
   employment_contract: string | null;
   health_certificate: string | null;
+  schedule: { day: string; time: string; tags: string[] }[];  // 추가
 }
 
 const Profile = () => {
@@ -64,7 +65,7 @@ const Profile = () => {
   const [accountSheetOpen, setAccountSheetOpen] = useState(false);
 
   const handleCopyAccount = () => {
-    navigator.clipboard.writeText(profileData.account_number.replace(/-/g, ""));
+    navigator.clipboard.writeText(profileData.account_number?.replace(/-/g, "") ?? "");
     setAccountSheetOpen(true);
   };
 
@@ -112,7 +113,7 @@ const Profile = () => {
         <div className="flex items-center gap-4 py-4 px-[20px]">
           <div className="w-[80px] h-[80px] rounded-full bg-muted overflow-hidden flex-shrink-0">
             {profileData.image_url ? (
-              <img src={profileData.image_url} alt="프로필" className="w-full h-full object-cover" />
+              <img src={profileData.image_url.startsWith('/uploads') ? `http://localhost:8000${profileData.image_url}` : profileData.image_url} alt="프로필" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-primary/30 to-primary/10" />
             )}
@@ -170,19 +171,16 @@ const Profile = () => {
             <InfoRow label="급여일" value={profileData.salary_day ? `${profileData.salary_day}일` : '-'} />
 
             {/* 근무일 */}
-            {/* <div className="flex items-start">
+            <div className="flex items-start">
               <span className="text-[16px] tracking-[-0.02em] font-medium text-[hsl(223,5%,46%)] w-[100px] flex-shrink-0 pt-0.5">근무일</span>
               <div className="flex-1 space-y-2">
-                {profileData.contract.schedule.map((s, i) => (
+                {profileData.schedule.map((s, i) => (
                   <div key={i} className="flex items-center gap-2 flex-wrap">
                     <span className="text-[16px] tracking-[-0.02em] font-semibold text-[hsl(210,5%,16%)] w-6">{s.day}</span>
                     <span className="text-[16px] tracking-[-0.02em] font-medium text-[hsl(210,5%,16%)]">{s.time}</span>
                     <div className="flex gap-1">
                       {s.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium"
-                        >
+                        <span key={tag} className="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
                           {tag}
                         </span>
                       ))}
@@ -190,7 +188,7 @@ const Profile = () => {
                   </div>
                 ))}
               </div>
-            </div> */}
+            </div>
           </div>
         </section>
 
@@ -270,10 +268,15 @@ const Profile = () => {
         <section className="py-5 px-[20px]">
           <div className="flex items-center mb-4">
             <h2 className="text-[20px] tracking-[-0.02em] font-bold text-[hsl(210,5%,16%)] w-[100px] flex-shrink-0">계약서</h2>
-            <span className="inline-flex items-center gap-1.5 text-[14px] tracking-[-0.02em] font-medium text-destructive">
-              <CheckCircle2 className="w-5 h-5" />
-              필수 계약서 제출 미완료
-            </span>
+            {(() => {
+              const allSubmitted = !!(profileData.resume && profileData.employment_contract && profileData.health_certificate);
+              return (
+                <span className={`inline-flex items-center gap-1.5 text-[14px] tracking-[-0.02em] font-medium ${allSubmitted ? "text-[hsl(145,63%,42%)]" : "text-destructive"}`}>
+                  <CheckCircle2 className="w-5 h-5" />
+                  {allSubmitted ? "필수 계약서 제출 완료" : "필수 계약서 제출 미완료"}
+                </span>
+              );
+            })()}
           </div>
           <div className="space-y-3">
             <InfoRow label="근로계약서" value={profileData.employment_contract ?? '미등록'} />

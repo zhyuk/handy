@@ -56,3 +56,15 @@ export async function getFeedback(member_id: number) {
     if (!response.ok) throw new Error("건의 내역 조회 실패");
     return response.json();
 }
+
+// 알림 내역 조회
+export async function getNotification(member_id: number, unread_only = false) {
+    const response = await fetch(`/api/common/notification/${member_id}?unread_only=${unread_only}`);
+    if (!response.ok) throw new Error("알림 내역 조회 실패");
+    return response.json();
+}
+
+// 알림 읽음 처리 
+export async function markNotificationRead(id: string) {
+    await fetch(`/api/common/notification/${id}/read`, { method: 'PATCH' });
+}

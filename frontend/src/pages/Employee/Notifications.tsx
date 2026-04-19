@@ -1,45 +1,72 @@
 import { useEffect, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { DUMMY_POSTS } from "@/lib/boardData";
-import { getNotice } from "@/api/public";
+import { getNotice, getNotification } from "@/api/public";
 
 type NotificationCategory = "전체" | "급여" | "일정" | "게시판" | "공지";
 
 interface NotificationItem {
   id: string;
-  category: "급여" | "게시판" | "일정" | "공지";
-  date: string;
+  type: "급여" | "게시판" | "일정" | "공지";
   message: string;
-  link?: string;
+  reference_id?: number;
+  created_at: string;
 }
-
-// 최신 공지사항 게시글
-const latestBoardNotice = DUMMY_POSTS.filter(p => p.category === "공지사항")[0];
-
-const MOCK_NOTIFICATIONS: NotificationItem[] = [
-  { id: "1", category: "급여", date: "03.01(일) 오전 09:01", message: "11월 급여 명세서가 발급됐어요", link: "/salary/pay-stub/1" },
-  { id: "2", category: "게시판", date: "03.01(일) 오전 09:01", message: `사장님이 새로운 공지를 작성했어요`, link: `/board/${latestBoardNotice?.id ?? 1}` },
-  { id: "3", category: "일정", date: "03.01(일) 오전 09:01", message: "기존 일정이 변경 되었어요", link: "/notifications/schedule-changed" },
-  { id: "4", category: "일정", date: "03.01(일) 오전 09:01", message: "새로운 일정이 추가 되었어요", link: "/notifications/schedule-added" },
-  { id: "5", category: "공지", date: "03.01(일) 오전 09:01", message: "(광고) GS25 제휴 기념 특별 이벤트", link: "/announcements/1" },
-];
 
 const filters: NotificationCategory[] = ["전체", "급여", "일정", "게시판", "공지"];
 
 const getFilterWidth = (label: string) => label.length <= 2 ? '48px' : '60px';
 const getTagWidth = (label: string) => label.length <= 2 ? '32px' : '44px';
 
+const formatNotificationDate = (dateStr: string) => {
+  const d = new Date(dateStr);
+  const days = ["일", "월", "화", "수", "목", "금", "토"];
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const date = String(d.getDate()).padStart(2, "0");
+  const day = days[d.getDay()];
+  const hours = d.getHours();
+  const minutes = String(d.getMinutes()).padStart(2, "0");
+  const ampm = hours < 12 ? "오전" : "오후";
+  const h = hours % 12 === 0 ? 12 : hours % 12;
+  return `${month}.${date}(${day}) ${ampm} ${h}:${minutes}`;
+};
+
+const getLink = (type: string, message: string, referenceId?: number) => {
+  if (type === "게시판") return `/board/${referenceId}`;
+  if (type === "급여") return `/employee/salary/pay-stub/${referenceId}`;
+  if (type === "공지") return `/announcements/${referenceId}`;
+  if (type === "일정") {
+    if (message.includes("변경")) return `/notifications/schedule-changed/${referenceId}`;
+    if (message.includes("추가")) return `/notifications/schedule-added/${referenceId}`;
+  }
+  return undefined;
+};
+
 const Notifications = () => {
   const navigate = useNavigate();
+
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [activeFilter, setActiveFilter] = useState<NotificationCategory>("전체");
 
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const data = await getNotification(1); // TODO: JWT에서 꺼내오기
+        setNotifications(data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchNotifications();
+  }, []);
+
   const filteredNotifications = activeFilter === "전체"
-    ? MOCK_NOTIFICATIONS
-    : MOCK_NOTIFICATIONS.filter((n) => n.category === activeFilter);
+    ? notifications
+    : notifications.filter((n) => n.type === activeFilter);
 
   const handleNotificationClick = (notification: NotificationItem) => {
-    if (notification.link) navigate(notification.link);
+    const link = getLink(notification.type, notification.message, notification.reference_id);
+    if (link) navigate(link);
   };
 
   return (
@@ -89,15 +116,15 @@ const Notifications = () => {
                 }}>
                 <div className="flex items-center" style={{ gap: '8px' }}>
                   <span style={{
-                    width: getTagWidth(notification.category), height: '24px',
+                    width: getTagWidth(notification.type), height: '24px',
                     backgroundColor: '#E8F3FF', borderRadius: '4px',
                     fontSize: '14px', fontWeight: 500, letterSpacing: '-0.02em', color: '#4261FF',
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                   }}>
-                    {notification.category}
+                    {notification.type}
                   </span>
                   <span style={{ fontSize: '12px', fontWeight: 400, letterSpacing: '-0.02em', color: '#93989E' }}>
-                    {notification.date}
+                    {formatNotificationDate(notification.created_at)}
                   </span>
                 </div>
                 <p style={{

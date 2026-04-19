@@ -106,8 +106,8 @@ const App = () => (
             <Route path="/employee/profile/edit/password" element={<PasswordChange />} />
 
             <Route path="/notifications" element={<Notifications />} />
-            <Route path="/notifications/schedule-changed" element={<NotificationScheduleChanged />} />
-            <Route path="/notifications/schedule-added" element={<NotificationScheduleAdded />} />
+            <Route path="/notifications/schedule-changed/:id" element={<NotificationScheduleChanged />} />
+            <Route path="/notifications/schedule-added/:id" element={<NotificationScheduleAdded />} />
             {/* ===== 직원유형 끝 ===== */}
 
 

@@ -1,3 +1,4 @@
+import { setRoleLabel } from "@/utils/function";
 import { ChevronDown, Bell, Menu } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -17,7 +18,7 @@ const HomeHeader = ({ storeName, roleLabel, hasNotifications = false, onStoreCli
       <button onClick={onStoreClick} className="flex items-center gap-1">
         <span style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.01em', color: '#292B2E' }}>{storeName}</span>
         <span style={{ width: '33px', height: '20px', borderRadius: '10px', backgroundColor: '#4261FF', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 600, letterSpacing: '-0.01em', color: '#FFFFFF', flexShrink: 0, marginLeft: '6px' }}>
-          {roleLabel}
+          {setRoleLabel(roleLabel)}
         </span>
         <ChevronDown className="h-4 w-4 text-muted-foreground" />
       </button>

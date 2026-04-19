@@ -6,6 +6,8 @@ import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 interface SideMenuProps {
   open: boolean;
   onClose: () => void;
+  memberName: string;
+  employeeType: string;
 }
 
 const MAIN_MENU = [
@@ -25,7 +27,7 @@ const SUB_MENU = [
   { label: "고객 건의함", path: "/feedback" },
 ];
 
-const SideMenu = ({ open, onClose }: SideMenuProps) => {
+const SideMenu = ({ open, onClose, memberName, employeeType }: SideMenuProps) => {
   const navigate = useNavigate();
 
   const handleNavigate = (path: string) => {
@@ -45,8 +47,8 @@ const SideMenu = ({ open, onClose }: SideMenuProps) => {
           <div className="flex items-center gap-3">
             <div className="h-[72px] w-[72px] flex-shrink-0 rounded-full bg-muted" />
             <div>
-              <p className="text-[20px] font-bold text-foreground">정수민</p>
-              <p className="text-[14px] text-muted-foreground">정규직</p>
+              <p className="text-[20px] font-bold text-foreground">{memberName}</p>
+              <p className="text-[14px] text-muted-foreground">{employeeType}</p>
             </div>
           </div>
           <button onClick={onClose} className="mt-2">

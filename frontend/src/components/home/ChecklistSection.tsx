@@ -9,16 +9,13 @@ interface CheckItem {
 
 interface ChecklistSectionProps {
   userName: string;
-  items: CheckItem[];
-  completedCount: number;
-  totalCount: number;
+  storeId: number;
 }
 
-const ChecklistSection = ({ userName, items: initialItems }: ChecklistSectionProps) => {
-  const [todoList, setTodoList] = useState(initialItems);
+const ChecklistSection = ({ userName, storeId }: ChecklistSectionProps) => {
+  const [todoList, setTodoList] = useState<CheckItem[]>([]);
   const [error, setError] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  const [storeId, setStoreId] = useState(1);
 
   const completedCount = todoList.filter((i) => i.is_achieved).length;
   const totalCount = todoList.length;

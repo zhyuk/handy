@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { getCurrentLocation } from "@/utils/gps";
 
 const KAKAO_KEY = import.meta.env.VITE_KAKAO_JS_KEY;
-
 interface AttendanceMapDialogProps {
   open: boolean;
   type: "clock_in" | "clock_out";

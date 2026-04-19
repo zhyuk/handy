@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Eye, EyeOff, AlertCircle } from "lucide-react";
 import { formatPhone } from "@/utils/valid";
 import { LoginRequest } from "@/types/login";
 import { useNavigate } from "react-router-dom";
+import { getMyStores } from "@/api/auth";
 
 const Login = () => {
     const navigate = useNavigate();
@@ -18,6 +19,23 @@ const Login = () => {
 
     const digits = phone.replace(/ /g, "");
     const hasInput = /^010\d{8}$/.test(digits) && password.length > 0;
+
+    // 컴포넌트 마운트 시 토큰 확인
+    useEffect(() => {
+        const checkAuth = async () => {
+            try {
+                const stores = await getMyStores();
+                if (stores.length === 0) return;
+                const hasOwner = stores.some((s: any) => s.role === "사장");
+                const hasEmployee = stores.some((s: any) => s.role === "직원");
+                if (hasOwner && !hasEmployee) navigate("/owner/home", { replace: true });
+                else navigate("/employee/home", { replace: true });
+            } catch {
+                // 토큰 없거나 만료 → 로그인 화면 유지
+            }
+        };
+        checkAuth();
+    }, []);
 
     const handleLogin = async () => {
         try {
@@ -43,7 +61,17 @@ const Login = () => {
 
                 if (res.ok) {
                     setError(false);
-                    navigate("/test");
+                    const stores = data.stores ?? [];
+                    const hasOwner = stores.some((s: any) => s.role === "사장");
+                    const hasEmployee = stores.some((s: any) => s.role === "직원");
+
+                    if (hasOwner && hasEmployee) {
+                        navigate("/select-role"); // 혼재 시 선택 화면
+                    } else if (hasOwner) {
+                        navigate("/owner/home");
+                    } else {
+                        navigate("/employee/home");
+                    }
                 }
             }
         } catch (err) {

@@ -235,3 +235,15 @@ export const fetchWorkLogRequests = async (employeeId: number, storeId: number) 
   if (!res.ok) throw new Error(String(res.status));
   return res.json();
 };
+
+export async function getScheduleChange(id: number) {
+    const response = await fetch(`/api/employee/schedule-change/${id}`);
+    if (!response.ok) throw new Error("일정 변경 조회 실패");
+    return response.json();
+}
+
+export async function getScheduleWork(id: number) {
+    const response = await fetch(`/api/employee/schedule-work/${id}`);
+    if (!response.ok) throw new Error("일정 추가 조회 실패");
+    return response.json();
+}

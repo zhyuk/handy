@@ -2,6 +2,8 @@ import { useState, useRef } from "react";
 import { ChevronLeft, ChevronDown, ChevronRight, X, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 
+const BASE_URL = import.meta.env.VITE_API_URL ?? "";
+
 interface ProfileData {
   name: string;
   birth: string | null;
@@ -54,13 +56,17 @@ const ProfileEdit = () => {
   const docFileInputRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState(profileData?.name ?? "");
-  const [profileImage, setProfileImage] = useState<string | null>(profileData?.image_url ?? null);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
   const birthDate = profileData?.birth ?? "";
   const age = profileData?.age ?? null;
   const gender = profileData?.gender ?? "";
   const phone = profileData?.phone ?? "";
   const [bank, setBank] = useState(profileData?.bank ?? "");
   const [accountNumber, setAccountNumber] = useState(profileData?.account_number ?? "");
+
+  const [originalImageUrl] = useState<string | null>(profileData?.image_url ?? null);
+
+  const previewSrc = profileImage ?? (profileData.image_url ? `${BASE_URL}${profileData.image_url}` : null);
 
   const contract = {
     employmentType: profileData?.employee_type ?? "",
@@ -90,9 +96,9 @@ const ProfileEdit = () => {
   };
 
   const [documentItems, setDocumentItems] = useState([
-    { label: "이력서", fileName: profileData?.resume ?? null, uploaded: profileData?.resume != null },
-    { label: "근로계약서", fileName: profileData?.employment_contract ?? null, uploaded: profileData?.employment_contract != null },
-    { label: "보건증", fileName: profileData?.health_certificate ?? null, uploaded: profileData?.health_certificate != null },
+    { label: "이력서", key: "resume", fileName: profileData?.resume ?? null, uploaded: profileData?.resume != null, file: null as File | null },
+    { label: "근로계약서", key: "employment_contract", fileName: profileData?.employment_contract ?? null, uploaded: profileData?.employment_contract != null, file: null as File | null },
+    { label: "보건증", key: "health_certificate", fileName: profileData?.health_certificate ?? null, uploaded: profileData?.health_certificate != null, file: null as File | null },
   ]);
 
   const [nameSheetOpen, setNameSheetOpen] = useState(false);
@@ -129,24 +135,38 @@ const ProfileEdit = () => {
   const handleDocFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && docUploadIndex !== null) {
-      setDocumentItems(prev => prev.map((item, i) => i === docUploadIndex ? { ...item, fileName: file.name, uploaded: true } : item));
+      setDocumentItems(prev => prev.map((item, i) =>
+        i === docUploadIndex ? { ...item, fileName: file.name, uploaded: true, file } : item
+      ));
       setDocUploadSheetOpen(false);
       setDocUploadIndex(null);
     }
   };
 
-  const handleDeleteDocument = () => {
-    if (deleteTargetIndex !== null) {
-      setDocumentItems(prev => prev.map((item, i) => i === deleteTargetIndex ? { ...item, fileName: null, uploaded: false } : item));
-      setDeleteDialogOpen(false);
-      setDeleteTargetIndex(null);
-    }
-  };
-
   const handleEditConfirm = async () => {
-    await changeInfo(name, bank, accountNumber);
+    await changeInfo(
+      name,
+      bank,
+      accountNumber,
+      profileImage,
+      profileData?.image_url ?? null,
+      {
+        resume: documentItems.find(d => d.key === "resume")?.file ?? null,
+        employment_contract: documentItems.find(d => d.key === "employment_contract")?.file ?? null,
+        health_certificate: documentItems.find(d => d.key === "health_certificate")?.file ?? null,
+      }
+    );
     setEditConfirmOpen(false);
     navigate("/employee/profile");
+  };
+
+  const handleDeleteDocument = () => {
+    if (deleteTargetIndex === null) return;
+    setDocumentItems(prev => prev.map((item, i) =>
+      i === deleteTargetIndex ? { ...item, fileName: null, uploaded: false, file: null } : item
+    ));
+    setDeleteDialogOpen(false);
+    setDeleteTargetIndex(null);
   };
 
   const getDocUploadTitle = () => {
@@ -176,8 +196,8 @@ const ProfileEdit = () => {
           <button onClick={() => setPhotoSheetOpen(true)} className="relative flex-shrink-0">
             <div className="w-[80px] h-[80px] rounded-full p-[3px] bg-[hsl(260,60%,80%)]">
               <div className="w-full h-full rounded-full overflow-hidden bg-[hsl(260,40%,85%)]">
-                {profileImage ? (
-                  <img src={profileImage} alt="프로필" className="w-full h-full object-cover" />
+                {previewSrc ? (
+                  <img src={previewSrc} alt="프로필" className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-[hsl(260,40%,80%)] to-[hsl(260,30%,88%)]" />
                 )}
