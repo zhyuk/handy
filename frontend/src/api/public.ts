@@ -1,4 +1,54 @@
 
+// ========== auth ========== //
+
+// 로그아웃
+export async function logout() {
+    const response = await fetch(`/api/auth/logout`);
+    if (!response.ok) throw new Error("로그아웃 실패");
+    return response.json();
+}
+
+// 로그인 계정에 연결된 업장 조회
+export async function getMyStores() {
+    const res = await fetch('/api/auth/my/stores', {
+        credentials: 'include',
+    });
+    if (!res.ok) throw new Error("업장 조회 실패");
+    return res.json();
+}
+
+// 로그인 계정 정보 조회
+export async function getMe() {
+    const res = await fetch('/api/auth/me', {
+        credentials: 'include',
+    });
+    if (!res.ok) throw new Error("내 정보 조회 실패");
+    return res.json();
+}
+
+
+// ========== common ========== //
+
+// 인증번호 검증
+export async function codeVerify(phone: string, code: string) {
+    const response = await fetch("/api/auth/signup/code/verify", {
+        method: "POST",
+        body: JSON.stringify({ phone, code })
+    });
+    if (!response.ok) throw new Error("인증번호 검증 실패");
+    return response.json();
+}
+
+// 인증번호 재전송
+export async function codeResend(phone: string) {
+    const response = await fetch("/api/auth/signup/code/send", {
+        method: "POST",
+        body: JSON.stringify({ phone })
+    });
+    if (!response.ok) throw new Error("인증번호 재전송 실패");
+    return response.json();
+}
+
 // 자주 묻는 질문 조회 
 export async function getFaq() {
     const response = await fetch(`/api/common/faq`);
@@ -51,15 +101,15 @@ export async function postFeedback(
 }
 
 // 고객 건의 내역 조회 
-export async function getFeedback(member_id: number) {
-    const response = await fetch(`/api/common/feedback/${member_id}`);
+export async function getFeedback() {
+    const response = await fetch(`/api/common/feedback`, { credentials: 'include' });
     if (!response.ok) throw new Error("건의 내역 조회 실패");
     return response.json();
 }
 
 // 알림 내역 조회
-export async function getNotification(member_id: number, unread_only = false) {
-    const response = await fetch(`/api/common/notification/${member_id}?unread_only=${unread_only}`);
+export async function getNotification(unread_only = false) {
+    const response = await fetch(`/api/common/notification?unread_only=${unread_only}`, { credentials: 'include' });
     if (!response.ok) throw new Error("알림 내역 조회 실패");
     return response.json();
 }

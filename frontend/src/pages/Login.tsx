@@ -3,7 +3,7 @@ import { Eye, EyeOff, AlertCircle } from "lucide-react";
 import { formatPhone } from "@/utils/valid";
 import { LoginRequest } from "@/types/login";
 import { useNavigate } from "react-router-dom";
-import { getMyStores } from "@/api/auth";
+import { getMyStores } from "@/api/public";
 
 const Login = () => {
     const navigate = useNavigate();

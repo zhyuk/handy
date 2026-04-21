@@ -1,16 +1,18 @@
-import { list } from 'postcss';
-import apiClient from './axios'
-import { fsync } from 'fs';
+const BASE = '/api/employee';
+const JSON_HEADERS = { 'Content-Type': 'application/json' };
+const CREDS = { credentials: 'include' as const };
 
-interface ClosingStatusResponse {
-    data: ClosingStatusResponse | PromiseLike<ClosingStatusResponse>;
-    is_completed: boolean;
+async function handleResponse(res: Response) {
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || String(res.status));
+    }
+    return res.json();
 }
 
 // 마감 보고 추가
 export async function addClosingReport(reportData: {
     store_id: number;
-    employee_id: number;
     card_sales: number;
     cash_sales: number;
     transfer_sales: number;
@@ -24,226 +26,162 @@ export async function addClosingReport(reportData: {
     manager_note: string;
     report_date: string;
 }) {
-    try {
-        const res = await fetch('/api/employee/closing-report', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(reportData)
-        });
-
-        if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(errorData.detail || '마감 보고 전송에 실패했습니다.');
-        }
-
-        return await res.json();
-    } catch (err) {
-        console.error("API 호출 에러:", err);
-        throw err;
-    }
+    const res = await fetch(`${BASE}/closing-report`, {
+        method: 'POST',
+        headers: JSON_HEADERS,
+        body: JSON.stringify(reportData),
+        ...CREDS,
+    });
+    return handleResponse(res);
 }
 
 // 오늘 마감 완료 여부 확인
-export async function checkClosingStatus(storeId: number): Promise<ClosingStatusResponse> {
-    try {
-        // URL 뒤에 쿼리 스트링을 직접 붙여줍니다.
-        const res = await fetch(`/api/employee/closing-report/check?store_id=${storeId}`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        });
-
-        if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(errorData.detail || '마감 상태 조회에 실패했습니다.');
-        }
-
-        const data = await res.json();
-        // console.log("서버 응답 데이터:", data);
-        return data;
-
-    } catch (err) {
-        console.error("마감 상태 조회 에러:", err);
-        throw err;
-    }
+export async function checkClosingStatus(storeId: number): Promise<{ is_completed: boolean }> {
+    const res = await fetch(`${BASE}/closing-report/check?store_id=${storeId}`, {
+        ...CREDS,
+    });
+    return handleResponse(res);
 }
 
-// 내 정보 조회 함수
-export async function getMyInfo(employee_id: number, store_id: number) {
-    try {
-        const res = await fetch(`/api/employee/mypage?employee_id=${employee_id}&store_id=${store_id}`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
-
-        if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(errorData.detail || '회원 정보 조회에 실패했습니다.');
-        }
-
-        return await res.json();
-
-    } catch (err) {
-        console.error("회원 정보 조회 에러:", err);
-        throw err;
-    }
+// 내 정보 조회
+export async function getMyInfo(store_id: number) {
+    const res = await fetch(`${BASE}/mypage?store_id=${store_id}`, {
+        headers: JSON_HEADERS,
+        ...CREDS,
+    });
+    return handleResponse(res);
 }
 
-// 출근 처리 
+// 출근
 export async function clockIn(store_id: number) {
-    try {
-        const res = await fetch(`/api/employee/work/clock-in`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ store_id })
-        });
-
-        if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(errorData.detail || '회원 정보 조회에 실패했습니다.');
-        }
-
-        return await res.json();
-
-    } catch (err) {
-        console.error("회원 정보 조회 에러:", err);
-        throw err;
-    }
+    const res = await fetch(`${BASE}/work/clock-in`, {
+        method: 'POST',
+        headers: JSON_HEADERS,
+        body: JSON.stringify({ store_id }),
+        ...CREDS,
+    });
+    return handleResponse(res);
 }
 
-// 퇴근 처리
+// 퇴근
 export async function clockOut(store_id: number) {
-    try {
-        const res = await fetch(`/api/employee/work/clock-out`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ store_id })
-        });
-
-        if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(errorData.detail || '회원 정보 조회에 실패했습니다.');
-        }
-
-        return await res.json();
-
-    } catch (err) {
-        console.error("회원 정보 조회 에러:", err);
-        throw err;
-    }
+    const res = await fetch(`${BASE}/work/clock-out`, {
+        method: 'POST',
+        headers: JSON_HEADERS,
+        body: JSON.stringify({ store_id }),
+        ...CREDS,
+    });
+    return handleResponse(res);
 }
 
 // 휴게 시작
 export async function breakStart(store_id: number) {
-    try {
-        const res = await fetch(`/api/employee/work/break-start`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ store_id })
-        });
-
-        if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(errorData.detail || '회원 정보 조회에 실패했습니다.');
-        }
-
-        return await res.json();
-
-    } catch (err) {
-        console.error("회원 정보 조회 에러:", err);
-        throw err;
-    }
+    const res = await fetch(`${BASE}/work/break-start`, {
+        method: 'POST',
+        headers: JSON_HEADERS,
+        body: JSON.stringify({ store_id }),
+        ...CREDS,
+    });
+    return handleResponse(res);
 }
 
 // 휴게 종료
 export async function breakEnd(store_id: number) {
-    try {
-        const res = await fetch(`/api/employee/work/break-end`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ store_id })
-        });
-
-        if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(errorData.detail || '회원 정보 조회에 실패했습니다.');
-        }
-
-        return await res.json();
-
-    } catch (err) {
-        console.error("회원 정보 조회 에러:", err);
-        throw err;
-    }
+    const res = await fetch(`${BASE}/work/break-end`, {
+        method: 'POST',
+        headers: JSON_HEADERS,
+        body: JSON.stringify({ store_id }),
+        ...CREDS,
+    });
+    return handleResponse(res);
 }
 
-// 근무 기록 수정 
+// 근무 기록 수정 요청
 export async function requestWorkLogChange(workLogData: {
-    store_id: number,
-    employee_id: number,
-    type: string,
-    date: string,
-    origin_start: string,
-    origin_end: string,
-    desired_start: string,
-    desired_end: string,
-    desired_break: string,
-    reason: string
+    store_id: number;
+    type: string;
+    date: string;
+    origin_start?: string;
+    origin_end?: string;
+    desired_start?: string;
+    desired_end?: string;
+    desired_break?: string;
+    reason: string;
 }) {
-
-    try {
-        const res = await fetch(`/api/employee/worklog/request`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(workLogData)
-        });
-
-        if (!res.ok) {
-            if (res.status === 409) {
-                const data = await res.json();
-                throw new Error("409:" + data.detail);
-            }
-            throw new Error(String(res.status));
-        }
-
-        return await res.json();
-
-    } catch (err) {
-        console.error("회원 정보 조회 에러:", err);
-        throw err;
+    const res = await fetch(`${BASE}/worklog/request`, {
+        method: 'POST',
+        headers: JSON_HEADERS,
+        body: JSON.stringify(workLogData),
+        ...CREDS,
+    });
+    if (res.status === 409) {
+        const data = await res.json();
+        throw new Error("409:" + data.detail);
     }
-} 
+    return handleResponse(res);
+}
 
 // 출근 기록 수정내역 조회
-export const fetchWorkLogRequests = async (employeeId: number, storeId: number) => {
-  const res = await fetch(`/api/employee/worklog/request?employee_id=${employeeId}&store_id=${storeId}`);
-  if (!res.ok) throw new Error(String(res.status));
-  return res.json();
-};
-
-export async function getScheduleChange(id: number) {
-    const response = await fetch(`/api/employee/schedule-change/${id}`);
-    if (!response.ok) throw new Error("일정 변경 조회 실패");
-    return response.json();
+export async function fetchWorkLogRequests(storeId: number) {
+    const res = await fetch(`${BASE}/worklog/request?store_id=${storeId}`, {
+        ...CREDS,
+    });
+    return handleResponse(res);
 }
 
+// 변경된 스케줄 조회
+export async function getScheduleChange(id: number) {
+    const res = await fetch(`${BASE}/schedule-change/${id}`, { ...CREDS });
+    return handleResponse(res);
+}
+
+// 추가된 스케줄 조회
 export async function getScheduleWork(id: number) {
-    const response = await fetch(`/api/employee/schedule-work/${id}`);
-    if (!response.ok) throw new Error("일정 추가 조회 실패");
-    return response.json();
+    const res = await fetch(`${BASE}/schedule-work/${id}`, { ...CREDS });
+    return handleResponse(res);
+}
+
+// 오늘 근무일정 조회
+export async function getTodayWork(store_id: number) {
+    const res = await fetch(`${BASE}/work/today`, {
+        method: 'POST',
+        headers: JSON_HEADERS,
+        body: JSON.stringify({ store_id }),
+        ...CREDS,
+    });
+    if (res.status === 404) return null;  // 오늘 일정 없음
+    return handleResponse(res);
+}
+
+// 근무 상태 조회
+export async function getWorkStatus(store_id: number) {
+    const res = await fetch(`${BASE}/work/status`, {
+        method: 'POST',
+        headers: JSON_HEADERS,
+        body: JSON.stringify({ store_id }),
+        ...CREDS,
+    });
+    return handleResponse(res);
+}
+
+// 이번주 근무일정 조회
+export async function getWeeklyWork(store_id: number) {
+    const res = await fetch(`${BASE}/work`, {
+        method: 'POST',
+        headers: JSON_HEADERS,
+        body: JSON.stringify({ store_id }),
+        ...CREDS,
+    });
+    return handleResponse(res);
+}
+
+// 공지사항 조회
+export async function getStoreNotice(store_id: number) {
+    const res = await fetch(`${BASE}/notice`, {
+        method: 'POST',
+        headers: JSON_HEADERS,
+        body: JSON.stringify({ store_id }),
+        ...CREDS,
+    });
+    return handleResponse(res);
 }

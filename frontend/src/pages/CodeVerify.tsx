@@ -4,6 +4,7 @@ import { AlertCircle, CheckCircle } from "lucide-react";
 import PageLayout from "@/components/PageLayout";
 import ToastBanner from "@/components/ToastBanner";
 import { formatPhone } from "@/utils/valid";
+import { codeResend, codeVerify } from "@/api/public";
 
 const CodeVerifyPage = () => {
   const navigate = useNavigate();
@@ -40,51 +41,31 @@ const CodeVerifyPage = () => {
     const verifyCode = async () => {
       if (code.length === 5 && !isVerified) {
         try {
-          const res = await fetch("/api/auth/signup/code/verify", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ phone: formattedPhone, code })
-          });
-
-          if (res.ok) {
-            setIsVerified(true);
-            setCodeError(false);
-          }
-          else {
-            setCodeError(true);
-          }
+          await codeVerify(formattedPhone, code);
+          setIsVerified(true);
+          setCodeError(false);
         } catch (err) {
-          console.error(err);
+          setCodeError(true);
         }
       }
-
-    }
+    };
     verifyCode();
-
   }, [code, isVerified]);
 
   // 인증번호 재전송
   const handleResend = async () => {
     try {
-      const res = await fetch("/api/auth/signup/code/send", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ phone: formattedPhone })
-      });
+      await codeResend(formattedPhone);
+      setSendCount((c) => c + 1);
+      setTimer(180);
+      setCode("");
+      setCodeError(false);
+      setIsVerified(false);
+      setResendLimitError(false);
+      setToast("인증번호를 재발송 했어요.");
     } catch (err) {
       console.error(err);
     }
-    setSendCount((c) => c + 1);
-    setTimer(180);
-    setCode("");
-    setCodeError(false);
-    setIsVerified(false);
-    setResendLimitError(false);
-    setToast("인증번호를 재발송 했어요.");
   };
 
   const handleNext = () => {

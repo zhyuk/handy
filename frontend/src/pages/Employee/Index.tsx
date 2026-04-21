@@ -16,9 +16,9 @@ import UnscheduledClockInDialog from "@/components/home/UnscheduledClockInDialog
 import SideMenu from "@/components/home/SideMenu";
 import { useToast } from "@/hooks/use-toast";
 import AccountSelector, { type AccountType } from "@/components/home/AccountSelector";
-import { breakEnd, breakStart, clockIn, clockOut } from "@/api/employee";
+import { breakEnd, breakStart, clockIn, clockOut, getTodayWork, getWorkStatus, getWeeklyWork, getStoreNotice } from "@/api/employee";
 import { getNotification, markNotificationRead } from "@/api/public";
-import { getMe, getMyStores } from "@/api/auth";
+import { getMe, getMyStores } from "@/api/public";
 
 
 const MOCK_BANNERS = [
@@ -109,104 +109,60 @@ const Index = () => {
   useEffect(() => {
     if (!authLoaded || !selectedAccount) return;
 
-    const employeeId = Number(selectedAccount.id);
     const storeId = selectedAccount.storeId;
 
-    const getTodayWork = async () => {
-      try {
-        const res = await fetch('/api/employee/work/today', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ employee_id: employeeId }),
-        });
-        const data = await res.json();
-        if (res.ok) setWorkSchedule(data);
-      } catch (err) {
-      } finally {
-        setScheduleLoading(false);
+    const fetchAll = async () => {
+      const [todayWork, workStatus, weeklyWork, storeNotice, storeLocation, notifications] =
+        await Promise.allSettled([
+          getTodayWork(storeId),
+          getWorkStatus(storeId),
+          getWeeklyWork(storeId),
+          getStoreNotice(storeId),
+          fetch('/api/common/store/map', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ store_id: storeId }),
+            credentials: 'include',
+          }).then(r => r.json()),
+          getNotification(storeId, true),
+        ]);
+
+      // 오늘 근무일정
+      if (todayWork.status === 'fulfilled') setWorkSchedule(todayWork.value);
+      setScheduleLoading(false);
+
+      // 근무 상태
+      if (workStatus.status === 'fulfilled' && workStatus.value?.status) {
+        const s = workStatus.value.status;
+        if (s === "working") setAttendanceStatus("working");
+        else if (s === "off_work") setAttendanceStatus("off_work");
+        else if (s === "on_break") setAttendanceStatus("on_break");
       }
-    };
+      setStatusLoaded(true);
 
-    const getNotice = async () => {
-      try {
-        const res = await fetch('/api/employee/notice', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ store_id: storeId }),
-        });
-        const data = await res.json();
-        if (res.ok) setStoreNotices(data);
-      } catch (err) { }
-    };
+      // 주간 근무
+      if (weeklyWork.status === 'fulfilled') setWeeklyWork(weeklyWork.value);
 
-    const getWeeklyWork = async () => {
-      try {
-        const res = await fetch('/api/employee/work', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ employee_id: employeeId, store_id: storeId }),
-        });
-        const data = await res.json();
-        if (res.ok) setWeeklyWork(data);
-      } catch (err) { }
-    };
+      // 공지사항
+      if (storeNotice.status === 'fulfilled') setStoreNotices(storeNotice.value);
 
-    const getWorkStatus = async () => {
-      try {
-        const res = await fetch('/api/employee/work/status', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ employee_id: employeeId }),
-        });
-        const data = await res.json();
-        if (res.ok && data.status) {
-          if (data.status === "working") setAttendanceStatus("working");
-          else if (data.status === "off_work") setAttendanceStatus("off_work");
-          else if (data.status === "on_break") setAttendanceStatus("on_break");
-        }
-      } catch (err) {
-      } finally {
-        setStatusLoaded(true);
-      }
-    };
+      // 매장 위치
+      if (storeLocation.status === 'fulfilled') setStoreLocation(storeLocation.value);
 
-    const getStoreLocation = async () => {
-      try {
-        const res = await fetch('/api/common/store/map', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ store_id: storeId }),
-        });
-        const data = await res.json();
-        if (res.ok) setStoreLocation(data);
-      } catch (err) { }
-    };
-
-    const getNotifications = async () => {
-      try {
-        const data = await getNotification(employeeId, true);
-        setNotices(data.map((n: any) => ({
+      // 알림
+      if (notifications.status === 'fulfilled') {
+        setNotices(notifications.value.map((n: any) => ({
           id: String(n.id),
           type: n.type,
           title: n.type,
           description: n.message,
           reference_id: n.reference_id,
         })));
-      } catch (err) { }
+      }
     };
 
-    getTodayWork();
-    getNotice();
-    getWeeklyWork();
-    getWorkStatus();
-    getStoreLocation();
-    getNotifications();
+    fetchAll();
   }, [authLoaded, selectedAccount]);
-
-  useEffect(() => {
-    const id = setInterval(() => setTick(t => t + 1), 1000);
-    return () => clearInterval(id);
-  }, []);
 
   const parseTimeToSec = (t: string) => {
     const [h, m] = t.split(":").map(Number);

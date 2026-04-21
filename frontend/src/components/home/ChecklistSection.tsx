@@ -47,6 +47,8 @@ const ChecklistSection = ({ userName, storeId }: ChecklistSectionProps) => {
   };
 
   useEffect(() => {
+    const storeId = 1;
+    const employeeId = 1;
     const getTodoList = async () => {
       try {
         const res = await fetch('/api/employee/todo', {
@@ -54,7 +56,7 @@ const ChecklistSection = ({ userName, storeId }: ChecklistSectionProps) => {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ "store_id": storeId })
+          body: JSON.stringify({ "store_id": storeId, "employee_id": employeeId })
         });
 
         const data = await res.json();
@@ -91,31 +93,37 @@ const ChecklistSection = ({ userName, storeId }: ChecklistSectionProps) => {
         <div className="mb-3 h-px w-full bg-[hsl(var(--checklist-divider))]" />
 
         <div className="flex flex-col gap-2.5">
-          {todoList.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => toggleItem(item.id)}
-              className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${item.is_achieved
-                ? "border-[hsl(var(--status-green))] bg-[hsl(var(--status-green-light))]"
-                : "border-transparent bg-muted"
-                }`}
-            >
-              <div
-                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${item.is_achieved
-                  ? "bg-[hsl(var(--status-green))]"
-                  : "border border-muted-foreground/30 bg-card"
+          {todoList.length === 0 ? (
+            <p style={{ fontSize: '14px', color: '#AAB4BF', textAlign: 'center', padding: '16px 0' }}>
+              오늘의 체크리스트가 없어요
+            </p>
+          ) : (
+            todoList.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => toggleItem(item.id)}
+                className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${item.is_achieved
+                  ? "border-[hsl(var(--status-green))] bg-[hsl(var(--status-green-light))]"
+                  : "border-transparent bg-muted"
                   }`}
               >
-                <Check className={`h-3.5 w-3.5 ${item.is_achieved ? "text-white" : "text-muted-foreground/30"}`} />
-              </div>
-              <span
-                className={`text-sm font-medium ${item.is_achieved ? "text-[hsl(var(--status-green))]" : "text-muted-foreground"
-                  }`}
-              >
-                {item.content}
-              </span>
-            </button>
-          ))}
+                <div
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${item.is_achieved
+                    ? "bg-[hsl(var(--status-green))]"
+                    : "border border-muted-foreground/30 bg-card"
+                    }`}
+                >
+                  <Check className={`h-3.5 w-3.5 ${item.is_achieved ? "text-white" : "text-muted-foreground/30"}`} />
+                </div>
+                <span
+                  className={`text-sm font-medium ${item.is_achieved ? "text-[hsl(var(--status-green))]" : "text-muted-foreground"
+                    }`}
+                >
+                  {item.content}
+                </span>
+              </button>
+            ))
+          )}
         </div>
       </div>
     </div>

@@ -80,17 +80,9 @@ export async function fetchBoardInfo(boardId: number) {
 }
 
 // 게시글 추가
-export async function addBoard(
-    store_id: number,
-    employee_id: number,
-    category: string,
-    title: string,
-    content: string,
-    image: string[]
-) {
+export async function addBoard(store_id: number, category: string, title: string, content: string, image: string[]) {
     const formData = new FormData();
     formData.append("store_id", String(store_id));
-    formData.append("employee_id", String(employee_id));
     formData.append("category", category);
     formData.append("title", title);
     formData.append("content", content);
@@ -103,6 +95,7 @@ export async function addBoard(
     const response = await fetch(`/api/common/board/add`, {
         method: "POST",
         body: formData,
+        credentials: 'include',
     });
     if (!response.ok) throw new Error("게시글 등록 실패");
     return response.json();
@@ -154,15 +147,12 @@ export async function deleteBoard(boardId: number) {
 }
 
 // 댓글 추가
-export async function addComment(boardId: number, employeeId: number, content: string, parentId: number | null = null) {
+export async function addComment(boardId: number, content: string, parentId: number | null = null) {
     const response = await fetch(`/api/common/board/${boardId}/comment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            employee_id: employeeId,
-            content,
-            parent_id: parentId,
-        }),
+        body: JSON.stringify({ content, parent_id: parentId }),
+        credentials: 'include',
     });
     if (!response.ok) throw new Error("댓글 등록 실패");
     return response.json();

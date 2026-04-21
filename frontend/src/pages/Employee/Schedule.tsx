@@ -4,7 +4,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import BottomNav from "@/components/home/BottomNav";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
-import { getMySchedule, getAllSchedule, getAllScheduleDetail, getScheduleChange } from "@/api/schedule";
+import { getMySchedule, getAllSchedule, getAllScheduleDetail, getScheduleChange, deleteScheduleChange } from "@/api/schedule";
+import { getMyStores } from "@/api/public";
 
 type TabType = "my" | "all" | "requests";
 type RequestStatus = "대기중" | "승인" | "거절";
@@ -38,15 +39,12 @@ interface PartDetail {
   employees: { id: number; name: string }[];
 }
 
-const STORE_ID = 1;
-const EMPLOYEE_ID = 1;
-
 const DAYS_KR = ["일", "월", "화", "수", "목", "금", "토"];
 
 const typeStyle = {
-  open:     { bg: '#FDF9DF', text: '#FFB300' },
-  middle:   { bg: '#ECFFF1', text: '#1EDC83' },
-  close:    { bg: '#E8F9FF', text: '#14C1FA' },
+  open: { bg: '#FDF9DF', text: '#FFB300' },
+  middle: { bg: '#ECFFF1', text: '#1EDC83' },
+  close: { bg: '#E8F9FF', text: '#14C1FA' },
   vacation: { bg: '#F7F7F8', text: '#AAB4BF' },
 };
 
@@ -58,15 +56,15 @@ const getPartStyle = (partName?: "오픈" | "미들" | "마감" | null) => {
 };
 
 const shiftTagStyle = {
-  open:   { bg: typeStyle.open.bg,   text: typeStyle.open.text },
+  open: { bg: typeStyle.open.bg, text: typeStyle.open.text },
   middle: { bg: typeStyle.middle.bg, text: typeStyle.middle.text },
-  close:  { bg: typeStyle.close.bg,  text: typeStyle.close.text },
+  close: { bg: typeStyle.close.bg, text: typeStyle.close.text },
 };
 
 const REQUEST_STATUS_STYLE: Record<RequestStatus, { bg: string; color: string }> = {
   "대기중": { bg: '#FDF9DF', color: '#FFB300' },
-  "승인":   { bg: '#ECFFF1', color: '#1EDC83' },
-  "거절":   { bg: '#FFEAE6', color: '#FF3D3D' },
+  "승인": { bg: '#ECFFF1', color: '#1EDC83' },
+  "거절": { bg: '#FFEAE6', color: '#FF3D3D' },
 };
 const REQUEST_TYPE_STYLE = { bg: '#E8F3FF', color: '#4261FF' };
 
@@ -132,6 +130,8 @@ const Schedule = () => {
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [filterTab, setFilterTab] = useState<"전체" | "일정 변경" | "휴가">("전체");
 
+  const [storeId, setStoreId] = useState<number | null>(null);
+
   // 나의 일정
   const [scheduleLoading, setScheduleLoading] = useState(false);
   const [mySchedule, setMySchedule] = useState<Record<string, MyScheduleData>>({});
@@ -162,13 +162,26 @@ const Schedule = () => {
 
   const formatTime = (timeStr: string | null) => timeStr ? timeStr.slice(0, 5) : undefined;
 
+  // auth 초기화
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const stores = await getMyStores();
+        if (stores.length > 0) setStoreId(stores[0].store_id);
+      } catch {
+        navigate("/");
+      }
+    };
+    init();
+  }, []);
+
   // 나의 일정 API
   useEffect(() => {
-    if (activeTab !== "my") return;
+    if (activeTab !== "my" || !storeId) return;
     const fetchSchedule = async () => {
       setScheduleLoading(true);
       try {
-        const data = await getMySchedule(STORE_ID, EMPLOYEE_ID, currentYear, currentMonth + 1);
+        const data = await getMySchedule(storeId, currentYear, currentMonth + 1);
         setMySchedule(data);
       } catch (err) {
         console.error("일정 조회 실패:", err);
@@ -177,15 +190,15 @@ const Schedule = () => {
       }
     };
     fetchSchedule();
-  }, [currentYear, currentMonth, activeTab]);
+  }, [currentYear, currentMonth, activeTab, storeId]);
 
   // 전체 직원 summary API
   useEffect(() => {
-    if (activeTab !== "all") return;
+    if (activeTab !== "all" || !storeId) return;
     const fetchAll = async () => {
       setAllSummaryLoading(true);
       try {
-        const data = await getAllSchedule(STORE_ID, currentYear, currentMonth + 1);
+        const data = await getAllSchedule(storeId, currentYear, currentMonth + 1);
         setAllStaffSummary(data);
       } catch (err) {
         console.error("전체 직원 summary 조회 실패:", err);
@@ -194,15 +207,15 @@ const Schedule = () => {
       }
     };
     fetchAll();
-  }, [currentYear, currentMonth, activeTab]);
+  }, [currentYear, currentMonth, activeTab, storeId]);
 
   // 변경 요청 내역 API
   useEffect(() => {
-    if (activeTab !== "requests") return;
+    if (activeTab !== "requests" || !storeId) return;
     const fetchRequests = async () => {
       setRequestsLoading(true);
       try {
-        const data = await getScheduleChange(STORE_ID, EMPLOYEE_ID);
+        const data = await getScheduleChange(storeId);  // employee_id 제거
         const mapped: ScheduleRequest[] = data.map((r: any, idx: number) => ({
           id: String(r.id),
           requestStatus: r.status === "pending" ? "대기중" : r.status === "approved" ? "승인" : "거절",
@@ -229,7 +242,7 @@ const Schedule = () => {
       }
     };
     fetchRequests();
-  }, [activeTab]);
+  }, [activeTab, storeId]);
 
   const prevMonth = () => {
     if (currentMonth === 0) { setCurrentYear(currentYear - 1); setCurrentMonth(11); }
@@ -241,7 +254,7 @@ const Schedule = () => {
   };
 
   const handleDateClick = async (year: number, month: number, date: number, isOutside: boolean) => {
-    if (isOutside) return;
+    if (isOutside || !storeId) return;
     setSelectedDate(getDateKey(year, month, date));
     setBottomSheetOpen(true);
 
@@ -249,7 +262,7 @@ const Schedule = () => {
       setAllStaffDetail(null);
       setAllDetailLoading(true);
       try {
-        const data = await getAllScheduleDetail(STORE_ID, year, month + 1, date);
+        const data = await getAllScheduleDetail(storeId, year, month + 1, date);
         setAllStaffDetail(data);
       } catch (err) {
         console.error("전체 직원 상세 조회 실패:", err);
@@ -289,9 +302,14 @@ const Schedule = () => {
       return b.requestedAt - a.requestedAt;
     });
 
-  const handleDeleteConfirm = () => {
-    if (deleteTargetId) {
+  const handleDeleteConfirm = async () => {
+    if (!deleteTargetId) return;
+    try {
+      await deleteScheduleChange(deleteTargetId);
       setScheduleRequests(prev => prev.filter(r => r.id !== deleteTargetId));
+    } catch (err) {
+      console.error("삭제 실패:", err);
+    } finally {
       setDeleteTargetId(null);
     }
   };
@@ -538,8 +556,8 @@ const Schedule = () => {
                 allStaffDetail.map((part) => {
                   const style =
                     part.part_name === "오픈" ? shiftTagStyle.open :
-                    part.part_name === "미들" ? shiftTagStyle.middle :
-                    shiftTagStyle.close;
+                      part.part_name === "미들" ? shiftTagStyle.middle :
+                        shiftTagStyle.close;
                   return (
                     <div key={part.part_id}>
                       <div className="flex items-center gap-2 mb-2">

@@ -42,6 +42,7 @@ import FAQ from "./pages/Employee/FAQ";
 import Notifications from "./pages/Employee/Notifications";
 import NotificationScheduleChanged from "./pages/Employee/NotificationScheduleChanged";
 import NotificationScheduleAdded from "./pages/Employee/NotificationScheduleAdded";
+import AuthGuard from "@/components/AuthGuard";
 
 const queryClient = new QueryClient();
 
@@ -65,55 +66,55 @@ const App = () => (
             <Route path="/onboarding/member-type" element={<Index />} />
 
             {/* ===== 공통 기능 ===== */}
-            <Route path="/board" element={<BoardList />} />
-            <Route path="/board/write" element={<BoardWrite />} />
-            <Route path="/board/:id" element={<BoardDetail />} />
+            <Route path="/board" element={<AuthGuard><BoardList /></AuthGuard>} />
+            <Route path="/board/write" element={<AuthGuard><BoardWrite /></AuthGuard>} />
+            <Route path="/board/:id" element={<AuthGuard><BoardDetail /></AuthGuard>} />
             {/* 건의함 */}
-            <Route path="/feedback" element={<Feedback />} />
-            <Route path="/feedback/:id" element={<FeedbackDetail />} />
+            <Route path="/feedback" element={<AuthGuard><Feedback /></AuthGuard>} />
+            <Route path="/feedback/:id" element={<AuthGuard><FeedbackDetail /></AuthGuard>} />
             {/* 서비스 공지사항 */}
-            <Route path="/announcements" element={<Announcements />} />
-            <Route path="/announcements/:id" element={<AnnouncementDetail />} />
+            <Route path="/announcements" element={<AuthGuard><Announcements /></AuthGuard>} />
+            <Route path="/announcements/:id" element={<AuthGuard><AnnouncementDetail /></AuthGuard>} />
             {/* 회원 탈퇴 */}
-            <Route path="/withdrawal" element={<Withdrawal />} />
+            <Route path="/withdrawal" element={<AuthGuard><Withdrawal /></AuthGuard>} />
             {/* FAQ */}
-            <Route path="/faq" element={<FAQ />} />
+            <Route path="/faq" element={<AuthGuard><FAQ /></AuthGuard>} />
             {/* ===== 공통 기능 끝 ===== */}
 
 
             {/* ===== 사장유형 ===== */}
-            <Route path="/owner/business-verify" element={<BusinessVerify />} />
-            <Route path="/owner/business/upload" element={<BusinessVerifyUpload />} />
+            <Route path="/owner/business-verify" element={<AuthGuard><BusinessVerify /></AuthGuard>} />
+            <Route path="/owner/business/upload" element={<AuthGuard><BusinessVerifyUpload /></AuthGuard>} />
             {/* ===== 사장유형 끝 ===== */}
 
             {/* ===== 직원유형 ===== */}
-            <Route path="/employee/business-verify" element={<StoreRegistration />} />
-            <Route path="/employee/home" element={<EmployeeHome />} />
-            <Route path="/schedule" element={<Schedule />} />
-            <Route path="/closing-report" element={<ClosingReport />} />
+            <Route path="/employee/business-verify" element={<AuthGuard><StoreRegistration /></AuthGuard>} />
+            <Route path="/employee/home" element={<AuthGuard><EmployeeHome /></AuthGuard>} />
+            <Route path="/schedule" element={<AuthGuard><Schedule /></AuthGuard>} />
+            <Route path="/closing-report" element={<AuthGuard><ClosingReport /></AuthGuard>} />
 
             {/* 급여 관리 */}
-            <Route path="/employee/salary" element={<SalaryManagement />} />
-            <Route path="/employee/salary/pay-stub/:id" element={<PayStubDetail />} />
+            <Route path="/employee/salary" element={<AuthGuard><SalaryManagement /></AuthGuard>} />
+            <Route path="/employee/salary/pay-stub/:id" element={<AuthGuard><PayStubDetail /></AuthGuard>} />
 
             {/* 출근 관리 */}
-            <Route path="/attendance" element={<AttendanceManagement />} />
-            <Route path="/attendance/record-edit" element={<AttendanceRecordEdit />} />
+            <Route path="/attendance" element={<AuthGuard><AttendanceManagement /></AuthGuard>} />
+            <Route path="/attendance/record-edit" element={<AuthGuard><AttendanceRecordEdit /></AuthGuard>} />
 
             {/* 내 정보 */}
-            <Route path="/employee/profile" element={<Profile />} />
-            <Route path="/employee/profile/edit" element={<ProfileEdit />} />
-            <Route path="/employee/profile/edit/password" element={<PasswordChange />} />
+            <Route path="/employee/profile" element={<AuthGuard><Profile /></AuthGuard>} />
+            <Route path="/employee/profile/edit" element={<AuthGuard><ProfileEdit /></AuthGuard>} />
+            <Route path="/employee/profile/edit/password" element={<AuthGuard><PasswordChange /></AuthGuard>} />
 
-            <Route path="/notifications" element={<Notifications />} />
-            <Route path="/notifications/schedule-changed/:id" element={<NotificationScheduleChanged />} />
-            <Route path="/notifications/schedule-added/:id" element={<NotificationScheduleAdded />} />
+            <Route path="/notifications" element={<AuthGuard><Notifications /></AuthGuard>} />
+            <Route path="/notifications/schedule-changed/:id" element={<AuthGuard><NotificationScheduleChanged /></AuthGuard>} />
+            <Route path="/notifications/schedule-added/:id" element={<AuthGuard><NotificationScheduleAdded /></AuthGuard>} />
             {/* ===== 직원유형 끝 ===== */}
 
 
-            <Route path="/employees" element={<EmployeeList />} />
-            <Route path="/employee/:id" element={<EmployeeDetail />} />
-            <Route path="/employee/:id/edit" element={<EmployeeEdit />} />
+            <Route path="/employees" element={<AuthGuard><EmployeeList /></AuthGuard>} />
+            <Route path="/employee/:id" element={<AuthGuard><EmployeeDetail /></AuthGuard>} />
+            <Route path="/employee/:id/edit" element={<AuthGuard><EmployeeEdit /></AuthGuard>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

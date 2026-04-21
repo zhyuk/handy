@@ -50,11 +50,8 @@ export async function changePassword(oldPassword: string, newPassword: string) {
         const response = await fetch("/api/common/password/change", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                old_password: oldPassword,
-                new_password: newPassword,
-                user_id: 1 // TODO: 나중에 로그인된 실제 유저 ID로 교체하세요!
-            }),
+            body: JSON.stringify({ old_password: oldPassword, new_password: newPassword, }),
+            credentials: 'include',
         });
 
         // 응답이 성공(200 OK)이 아닐 경우
