@@ -14,6 +14,7 @@ import {
   DrawerContent,
 } from "@/components/ui/drawer";
 import { getMyInfo } from "@/api/employee";
+import { logout } from "@/api/public";
 
 
 const adBanners = [
@@ -60,7 +61,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [logoutOpen, setLogoutOpen] = useState(false);
-  const [viewingDoc, setViewingDoc] = useState<string | null>(null);
+  const [viewingDoc, setViewingDoc] = useState<{ label: string; url: string } | null>(null);
   const [currentAd, setCurrentAd] = useState(0);
   const [accountSheetOpen, setAccountSheetOpen] = useState(false);
 
@@ -69,17 +70,21 @@ const Profile = () => {
     setAccountSheetOpen(true);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setLogoutOpen(false);
-    navigate("/login");
+    try {
+      await logout();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      navigate("/");
+    }
   };
 
   useEffect(() => {
     const fetchProfile = async () => {
-      const employee_id = 1;
-      const store_id = 1;
       try {
-        const data = await getMyInfo(employee_id, store_id);
+        const data = await getMyInfo(1);
         setProfileData(data);
       } catch (err) {
         console.error(err);
@@ -179,8 +184,8 @@ const Profile = () => {
                     <span className="text-[16px] tracking-[-0.02em] font-semibold text-[hsl(210,5%,16%)] w-6">{s.day}</span>
                     <span className="text-[16px] tracking-[-0.02em] font-medium text-[hsl(210,5%,16%)]">{s.time}</span>
                     <div className="flex gap-1">
-                      {s.tags.map((tag) => (
-                        <span key={tag} className="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                      {s.tags.map((tag, i) => (
+                        <span key={`${tag}-${i}`} className="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
                           {tag}
                         </span>
                       ))}
@@ -279,9 +284,25 @@ const Profile = () => {
             })()}
           </div>
           <div className="space-y-3">
-            <InfoRow label="근로계약서" value={profileData.employment_contract ?? '미등록'} />
-            <InfoRow label="건강진단서" value={profileData.health_certificate ?? '미등록'} />
-            <InfoRow label="이력서" value={profileData.resume ?? '미등록'} />
+            {[
+              { label: "근로계약서", url: profileData.employment_contract },
+              { label: "건강진단서", url: profileData.health_certificate },
+              { label: "이력서", url: profileData.resume },
+            ].map(({ label, url }) => (
+              <div key={label} className="flex items-start">
+                <span className="text-[16px] tracking-[-0.02em] font-medium text-[hsl(223,5%,46%)] w-[100px] flex-shrink-0 pt-0.5">{label}</span>
+                {url ? (
+                  <button
+                    onClick={() => setViewingDoc({ label, url })}
+                    className="text-[16px] tracking-[-0.02em] font-medium text-primary underline underline-offset-2"
+                  >
+                    {`${profileData.name}_${label}.${url.split(".")[1]}`}
+                  </button>
+                ) : (
+                  <span className="text-[16px] tracking-[-0.02em] font-medium text-[hsl(210,5%,16%)]">미등록</span>
+                )}
+              </div>
+            ))}
           </div>
         </section>
 
@@ -322,10 +343,20 @@ const Profile = () => {
       {/* 계약서 보기 팝업 */}
       <Dialog open={!!viewingDoc} onOpenChange={() => setViewingDoc(null)}>
         <DialogContent className="max-w-[380px] rounded-2xl">
-          <DialogTitle className="text-lg font-bold text-foreground">{viewingDoc}</DialogTitle>
+          <DialogTitle className="text-lg font-bold text-foreground">{viewingDoc?.label}</DialogTitle>
           <DialogDescription className="sr-only">계약서 이미지</DialogDescription>
-          <div className="w-full h-[400px] bg-muted rounded-lg flex items-center justify-center">
-            <p className="text-sm text-muted-foreground">계약서 이미지 영역</p>
+          <div className="w-full h-[400px] bg-muted rounded-lg overflow-hidden">
+            {viewingDoc?.url ? (
+              <img
+                src={viewingDoc.url.startsWith('/uploads') ? `http://localhost:8000${viewingDoc.url}` : viewingDoc.url}
+                alt={viewingDoc.label}
+                className="w-full h-full object-contain"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <p className="text-sm text-muted-foreground">이미지 없음</p>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

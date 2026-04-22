@@ -51,7 +51,7 @@ const Notifications = () => {
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const data = await getNotification(1); // TODO: JWT에서 꺼내오기
+        const data = await getNotification(false); // TODO: JWT에서 꺼내오기
         setNotifications(data);
       } catch (err) {
         console.error(err);
@@ -112,7 +112,7 @@ const Notifications = () => {
                   borderRadius: '12px', boxShadow: '2px 2px 12px rgba(0,0,0,0.06)',
                   padding: '16px', textAlign: 'left', display: 'flex',
                   flexDirection: 'column', justifyContent: 'center', gap: '4px',
-                  cursor: notification.link ? 'pointer' : 'default',
+                  cursor: getLink(notification.type, notification.message, notification.reference_id) ? 'pointer' : 'default',
                 }}>
                 <div className="flex items-center" style={{ gap: '8px' }}>
                   <span style={{

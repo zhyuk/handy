@@ -119,8 +119,7 @@ const buildCalendarFromLogs = (logs: any[]): Record<number, DayData> => {
 
     let status: DayStatus = "normal";
     if (log.status === "absent") status = "absent";
-    else if (lateMin > 0 && overtimeMin > 0) status = "overtime";
-    else if (lateMin > 0) status = "late";
+    else if (lateMin > 0) status = "late";        // 지각이면 무조건 late (연장 있어도)
     else if (overtimeMin > 0) status = "overtime";
 
     let sheetStatus: AttendanceStatus = "근무완료";
@@ -236,7 +235,7 @@ const AttendanceManagement = () => {
   useEffect(() => {
     const fetchRequests = async () => {
       try {
-        const data = await fetchWorkLogRequests(1, 1); // employee_id, store_id
+        const data = await fetchWorkLogRequests(1);
         const mapped: EditRequest[] = data.map((r: any) => ({
           id: String(r.id),
           requestStatus: r.status === "pending" ? "대기중" : r.status === "approved" ? "승인" : "거절",
@@ -361,6 +360,8 @@ const AttendanceManagement = () => {
   };
 
   const TAB_LABELS: Record<AttendanceTab, string> = { calendar: "캘린더", history: "출근내역", edit_requests: "수정 요청 내역" };
+
+  console.log(calendarData[7]);
 
   return (
     <div className="mx-auto min-h-screen max-w-lg bg-white pb-20">

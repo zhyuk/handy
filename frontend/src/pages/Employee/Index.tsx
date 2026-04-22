@@ -124,7 +124,7 @@ const Index = () => {
             body: JSON.stringify({ store_id: storeId }),
             credentials: 'include',
           }).then(r => r.json()),
-          getNotification(storeId, true),
+          getNotification(true),
         ]);
 
       // 오늘 근무일정

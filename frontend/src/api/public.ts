@@ -3,7 +3,10 @@
 
 // 로그아웃
 export async function logout() {
-    const response = await fetch(`/api/auth/logout`);
+    const response = await fetch(`/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+    });
     if (!response.ok) throw new Error("로그아웃 실패");
     return response.json();
 }
