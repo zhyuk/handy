@@ -167,7 +167,7 @@ export default function BoardDetail() {
     if (!commentText.trim() || isSending) return;  // ← isSending 체크
     setIsSending(true);
     try {
-      await addComment(postId, CURRENT_EMPLOYEE_ID, commentText, replyTo?.id ?? null);
+      await addComment(postId, commentText, replyTo?.id ?? null);
       toast.success("댓글이 등록되었습니다.");
       setCommentText("");
       setReplyTo(null);

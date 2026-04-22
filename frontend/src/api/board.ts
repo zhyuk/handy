@@ -103,8 +103,6 @@ export async function addBoard(store_id: number, category: string, title: string
 // 게시글 수정 
 export async function modifyBoard(
     board_id: number,
-    store_id: number,
-    employee_id: number,
     category: string,
     title: string,
     content: string,

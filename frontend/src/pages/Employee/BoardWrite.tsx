@@ -70,9 +70,9 @@ export default function BoardWrite() {
     setRegisterDialog(false);
     try {
       if (isEdit) {
-        await modifyBoard(editData!.post!.id, 1, 1, category, title, content, photos);
+        await modifyBoard(editData!.post!.id, category, title, content, photos);
       } else {
-        await addBoard(1, 1, category, title, content, photos);
+        await addBoard(1, category, title, content, photos);
       }
       toast(isEdit ? "게시글이 수정되었어요" : "게시글이 등록되었어요", { duration: 2000 });
       setTimeout(() => navigate(-1), 500);
