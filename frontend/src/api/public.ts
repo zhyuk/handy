@@ -1,9 +1,10 @@
+const BASE_URL = import.meta.env.VITE_API_URL ?? '';
 
 // ========== auth ========== //
 
 // 로그아웃
 export async function logout() {
-    const response = await fetch(`/api/auth/logout`, {
+    const response = await fetch(`${BASE_URL}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include',
     });
@@ -13,7 +14,7 @@ export async function logout() {
 
 // 로그인 계정에 연결된 업장 조회
 export async function getMyStores() {
-    const res = await fetch('/api/auth/my/stores', {
+    const res = await fetch(`${BASE_URL}/api/auth/my/stores`, {
         credentials: 'include',
     });
     if (!res.ok) throw new Error("업장 조회 실패");
@@ -22,7 +23,7 @@ export async function getMyStores() {
 
 // 로그인 계정 정보 조회
 export async function getMe() {
-    const res = await fetch('/api/auth/me', {
+    const res = await fetch(`${BASE_URL}/api/auth/me`, {
         credentials: 'include',
     });
     if (!res.ok) throw new Error("내 정보 조회 실패");
@@ -34,7 +35,7 @@ export async function getMe() {
 
 // 인증번호 검증
 export async function codeVerify(phone: string, code: string) {
-    const response = await fetch("/api/auth/signup/code/verify", {
+    const response = await fetch(`${BASE_URL}/api/auth/signup/code/verify`, {
         method: "POST",
         body: JSON.stringify({ phone, code })
     });
@@ -44,7 +45,7 @@ export async function codeVerify(phone: string, code: string) {
 
 // 인증번호 재전송
 export async function codeResend(phone: string) {
-    const response = await fetch("/api/auth/signup/code/send", {
+    const response = await fetch(`${BASE_URL}/api/auth/signup/code/send`, {
         method: "POST",
         body: JSON.stringify({ phone })
     });
@@ -54,21 +55,21 @@ export async function codeResend(phone: string) {
 
 // 자주 묻는 질문 조회 
 export async function getFaq() {
-    const response = await fetch(`/api/common/faq`);
+    const response = await fetch(`${BASE_URL}/api/common/faq`);
     if (!response.ok) throw new Error("자주 묻는 질문 조회 실패");
     return response.json();
 }
 
 // 서비스 공지사항 조회
 export async function getNotice() {
-    const response = await fetch(`/api/common/notice`);
+    const response = await fetch(`${BASE_URL}/api/common/notice`);
     if (!response.ok) throw new Error("서비스 공지사항 조회 실패");
     return response.json();
 }
 
 // 서비스 공지사항 세부 조회 
 export async function getNoticeDetail(id: number) {
-    const response = await fetch(`/api/common/notice/${id}`);
+    const response = await fetch(`${BASE_URL}/api/common/notice/${id}`);
     if (!response.ok) throw new Error("서비스 공지사항 세부 조회 실패");
     return response.json();
 }
@@ -95,7 +96,7 @@ export async function postFeedback(
         formData.append("images", new Blob([arr], { type: mime }), `image_${idx}.jpg`);
     });
 
-    const response = await fetch("/api/common/feedback", {
+    const response = await fetch(`${BASE_URL}/api/common/feedback`, {
         method: "POST",
         body: formData,
     });
@@ -105,19 +106,19 @@ export async function postFeedback(
 
 // 고객 건의 내역 조회 
 export async function getFeedback() {
-    const response = await fetch(`/api/common/feedback`, { credentials: 'include' });
+    const response = await fetch(`${BASE_URL}/api/common/feedback`, { credentials: 'include' });
     if (!response.ok) throw new Error("건의 내역 조회 실패");
     return response.json();
 }
 
 // 알림 내역 조회
 export async function getNotification(unread_only = false) {
-    const response = await fetch(`/api/common/notification?unread_only=${unread_only}`, { credentials: 'include' });
+    const response = await fetch(`${BASE_URL}/api/common/notification?unread_only=${unread_only}`, { credentials: 'include' });
     if (!response.ok) throw new Error("알림 내역 조회 실패");
     return response.json();
 }
 
 // 알림 읽음 처리 
 export async function markNotificationRead(id: string) {
-    await fetch(`/api/common/notification/${id}/read`, { method: 'PATCH' });
+    await fetch(`${BASE_URL}/api/common/notification/${id}/read`, { method: 'PATCH' });
 }

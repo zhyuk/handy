@@ -1,4 +1,5 @@
-const BASE = '/api/employee';
+const BASE_URL = import.meta.env.VITE_API_URL ?? '';
+const BASE = `${BASE_URL}/api/employee`;
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 const CREDS = { credentials: 'include' as const };
 

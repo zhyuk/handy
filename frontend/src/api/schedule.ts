@@ -1,4 +1,5 @@
-const BASE = '/api/employee';
+const BASE_URL = import.meta.env.VITE_API_URL ?? '';
+const BASE = `${BASE_URL}/api/employee`;
 const CREDS = { credentials: 'include' as const };
 
 // 나의 일정 조회

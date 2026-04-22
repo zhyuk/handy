@@ -1,5 +1,4 @@
-import { list } from 'postcss';
-import apiClient from './axios'
+const BASE_URL = import.meta.env.VITE_API_URL ?? '';
 
 export interface Post {
     id: number;
@@ -40,7 +39,7 @@ export interface PostDetail {
 // 게시글 목록 조회
 export async function fetchBoardList(storeId: number): Promise<Post[]> {
     try {
-        const res = await fetch('/api/common/board', {
+        const res = await fetch(`${BASE_URL}/api/common/board`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -64,7 +63,7 @@ export async function fetchBoardList(storeId: number): Promise<Post[]> {
 // 게시글 상세 조회 
 export async function fetchBoardInfo(boardId: number) {
     try {
-        const res = await fetch(`/api/common/board/${boardId}`);
+        const res = await fetch(`${BASE_URL}/api/common/board/${boardId}`);
 
         if (!res.ok) {
             throw new Error('게시글 데이터를 불러오는데 실패했습니다.');
@@ -92,7 +91,7 @@ export async function addBoard(store_id: number, category: string, title: string
         formData.append("images", blob, "image.jpg");
     }
 
-    const response = await fetch(`/api/common/board/add`, {
+    const response = await fetch(`${BASE_URL}/api/common/board/add`, {
         method: "POST",
         body: formData,
         credentials: 'include',
@@ -129,7 +128,7 @@ export async function modifyBoard(
         formData.append("images", blob, "image.jpg");
     }
 
-    const response = await fetch(`/api/common/board/modify`, {
+    const response = await fetch(`${BASE_URL}/api/common/board/modify`, {
         method: "POST",
         body: formData,
     });
@@ -139,7 +138,7 @@ export async function modifyBoard(
 
 // 게시글 삭제
 export async function deleteBoard(boardId: number) {
-    const response = await fetch(`/api/common/board/${boardId}`, {
+    const response = await fetch(`${BASE_URL}/api/common/board/${boardId}`, {
         method: "DELETE",
     });
     if (!response.ok) throw new Error("게시글 삭제 실패");
@@ -148,7 +147,7 @@ export async function deleteBoard(boardId: number) {
 
 // 댓글 추가
 export async function addComment(boardId: number, content: string, parentId: number | null = null) {
-    const response = await fetch(`/api/common/board/${boardId}/comment`, {
+    const response = await fetch(`${BASE_URL}/api/common/board/${boardId}/comment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content, parent_id: parentId }),
@@ -160,7 +159,7 @@ export async function addComment(boardId: number, content: string, parentId: num
 
 // 댓글 삭제
 export async function deleteComment(commentId: number) {
-    const response = await fetch(`/api/common/board/comment/${commentId}`, {
+    const response = await fetch(`${BASE_URL}/api/common/board/comment/${commentId}`, {
         method: "DELETE",  // ← 추가
     });
     if (!response.ok) throw new Error("댓글 삭제 실패");

@@ -1,5 +1,4 @@
-import { list } from 'postcss';
-import apiClient from './axios'
+const BASE_URL = import.meta.env.VITE_API_URL ?? '';
 
 // 내 정보 수정
 export async function changeInfo(
@@ -29,7 +28,7 @@ export async function changeInfo(
     if (documents.employment_contract) formData.append("employment_contract", documents.employment_contract);
     if (documents.health_certificate) formData.append("health_certificate", documents.health_certificate);
 
-    const response = await fetch("/api/employee/mypage/edit", {
+    const response = await fetch(`${BASE_URL}/api/employee/mypage/edit`, {
         method: "POST",
         body: formData,
     });
@@ -47,7 +46,7 @@ export async function changeInfo(
 // 비밀번호 변경 함수
 export async function changePassword(oldPassword: string, newPassword: string) {
     try {
-        const response = await fetch("/api/common/password/change", {
+        const response = await fetch(`${BASE_URL}/api/common/password/change`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ old_password: oldPassword, new_password: newPassword, }),
