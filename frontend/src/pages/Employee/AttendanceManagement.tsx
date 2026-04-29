@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
-import BottomNav from "@/components/home/BottomNav";
+import BottomNav from "@/components/home/employee/BottomNav";
 import MonthlySummary from "@/components/attendance/MonthlySummary";
 import AttendanceDetailSheet from "@/components/attendance/AttendanceDetailSheet";
 import type { AttendanceDetail, AttendanceStatus } from "@/components/attendance/AttendanceDetailSheet";
@@ -550,7 +550,7 @@ const AttendanceManagement = () => {
         onClose={() => setSheetOpen(false)}
         onRequestEdit={(detail) => { setSheetOpen(false); navigate("/attendance/record-edit", { state: { detail } }); }}
       />
-      {!sheetOpen && <BottomNav activeTab="attendance" onTabChange={() => { }} />}
+      {/* {!sheetOpen && <BottomNav activeTab="attendance" onTabChange={() => { }} />} */}
     </div>
   );
 };

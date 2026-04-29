@@ -1,5 +1,5 @@
 import { ChevronRight } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavToast } from "@/hooks/use-nav-toast";
 
 interface SalaryStore {
   name: string;
@@ -16,7 +16,7 @@ interface SalaryPreviewProps {
 }
 
 const SalaryPreview = ({ userName, month, totalAmount, stores }: SalaryPreviewProps) => {
-  const navigate = useNavigate();
+  const { navigateTo } = useNavToast();
   return (
     <div className="px-5">
       <div className="mb-3 flex items-end justify-between">
@@ -26,11 +26,11 @@ const SalaryPreview = ({ userName, month, totalAmount, stores }: SalaryPreviewPr
             이번달 <span style={{ color: '#4261FF' }}>예상 급여</span>에요
           </p>
         </div>
-        <button onClick={() => navigate("/employee/salary")} className="flex items-center text-xs text-muted-foreground mb-0.5">
+        <button onClick={() => navigateTo("/salary", "급여관리로 이동했어요")} className="pressable flex items-center text-muted-foreground mb-0.5" style={{ fontSize: '14px' }}>
           더보기 <ChevronRight className="h-3.5 w-3.5" />
         </button>
       </div>
-      <button onClick={() => navigate("/salary")} className="w-full text-left rounded-2xl bg-card p-5" style={{ boxShadow: '2px 2px 12px rgba(0,0,0,0.06)' }}>
+      <button onClick={() => navigateTo("/salary", "급여관리로 이동했어요")} className="pressable w-full text-left rounded-2xl bg-card p-5" style={{ boxShadow: '2px 2px 12px rgba(0,0,0,0.06)' }}>
         {/* Month label */}
         <p className="text-base font-semibold text-[hsl(var(--schedule-shift-text))]">₩ {month} 예상 급여</p>
 

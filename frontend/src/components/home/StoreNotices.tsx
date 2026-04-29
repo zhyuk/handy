@@ -2,10 +2,10 @@ import { ChevronRight, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface Notice {
-  id: number;
-  writer: string;
-  title: string;
-  created_at: string;
+  id: string;
+  author: string;
+  timeAgo: string;
+  content: string;
 }
 
 interface StoreNoticesProps {
@@ -23,22 +23,22 @@ const StoreNotices = ({ notices }: StoreNoticesProps) => {
             <span style={{ color: '#4261FF' }}>매장 공지</span>가 있어요
           </p>
         </div>
-        <button onClick={() => navigate("/board")} className="flex items-center text-xs text-muted-foreground mb-0.5">
+        <button onClick={() => navigate("/board")} className="pressable flex items-center text-xs text-muted-foreground mb-0.5">
           더보기 <ChevronRight className="h-3.5 w-3.5" />
         </button>
       </div>
       <div className="flex flex-col gap-3">
         {notices.map((notice) => (
-          <div key={notice.id} className="flex items-center gap-3 rounded-xl bg-card p-4 cursor-pointer" style={{ boxShadow: '2px 2px 12px rgba(0,0,0,0.06)' }} onClick={() => navigate(`/board/${notice.id}`)}>
+          <div key={notice.id} className="pressable flex items-center gap-3 rounded-xl bg-card p-4 cursor-pointer" style={{ boxShadow: '2px 2px 12px rgba(0,0,0,0.06)' }} onClick={() => navigate(`/board/${notice.id}`)}>
             <div className="flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-full bg-muted">
               <User className="h-5 w-5 text-muted-foreground" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-[hsl(var(--notice-author))]">{notice.writer}</span>
-                <span className="shrink-0 text-xs font-medium text-[hsl(var(--notice-time))]">{new Date(notice.created_at).toLocaleDateString("ko-KR")}</span>
+                <span className="text-sm font-medium text-[hsl(var(--notice-author))]">{notice.author}</span>
+                <span className="shrink-0 text-xs font-medium text-[hsl(var(--notice-time))]">{notice.timeAgo}</span>
               </div>
-              <p className="mt-1 text-base font-medium text-[hsl(var(--notice-content))] overflow-hidden text-ellipsis whitespace-nowrap">{notice.title}</p>
+              <p className="mt-1 text-base font-medium text-[hsl(var(--notice-content))] overflow-hidden text-ellipsis whitespace-nowrap">{notice.content}</p>
             </div>
           </div>
         ))}

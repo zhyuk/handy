@@ -1,5 +1,5 @@
 import { Home, Wallet, Clock, MessageSquare, User } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 type TabId = "home" | "salary" | "attendance" | "board" | "myinfo";
 
@@ -16,20 +16,30 @@ const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "myinfo", label: "내정보", icon: User },
 ];
 
+const TAB_PATHS: Record<TabId, string> = {
+  home: "/",
+  salary: "/employee/salary",
+  attendance: "/attendance",
+  board: "/board",
+  myinfo: "/employee/profile",
+};
+
 const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card">
       <div className="mx-auto flex max-w-lg items-center justify-around pb-[env(safe-area-inset-bottom)]" style={{ height: '74px' }}>
         {tabs.map((tab) => {
           const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
+          const isActive = pathname === TAB_PATHS[tab.id] || (tab.id !== "home" && pathname.startsWith(TAB_PATHS[tab.id]));
           return (
             <button
               key={tab.id}
               onClick={() => {
+                if (isActive) return;
                 if (tab.id === "home") {
-                  navigate("/employee/home");
+                  navigate("/");
                 } else if (tab.id === "salary") {
                   navigate("/employee/salary");
                 } else if (tab.id === "attendance") {
@@ -42,7 +52,7 @@ const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
                   onTabChange(tab.id);
                 }
               }}
-              className="flex flex-col items-center gap-0.5 px-2 py-1"
+              className={`flex flex-col items-center gap-0.5 px-2 py-1 ${!isActive ? "pressable" : ""}`}
             >
               <Icon
                 className={`h-5 w-5 ${isActive ? "text-primary" : "text-muted-foreground"}`}

@@ -1,7 +1,6 @@
 import { X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 
 interface SideMenuProps {
   open: boolean;
@@ -11,16 +10,16 @@ interface SideMenuProps {
 }
 
 const MAIN_MENU = [
-  { label: "홈", path: "/employee/home" },
+  { label: "홈", path: "/" },
   { label: "출근관리", path: "/attendance" },
   { label: "일정확인", path: "/schedule" },
-  { label: "급여관리", path: "/employee/salary" },
+  { label: "급여관리", path: "/salary" },
   { label: "게시판", path: "/board" },
   { label: "마감보고", path: "/closing-report" },
 ];
 
 const SUB_MENU = [
-  { label: "내 정보", path: "/employee/profile" },
+  { label: "내 정보", path: "/profile" },
   { label: "알림", path: "/notifications" },
   { label: "공지사항", path: "/announcements" },
   { label: "자주 묻는 질문", path: "/faq" },
@@ -37,10 +36,10 @@ const SideMenu = ({ open, onClose, memberName, employeeType }: SideMenuProps) =>
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent side="left" className="w-[75%] max-w-[300px] p-0 border-0 [&>button]:hidden" style={{ backgroundColor: '#FFFFFF' }}>
-        <VisuallyHidden.Root>
+      <SheetContent side="left" className="w-[75%] max-w-[300px] p-0 border-0 [&>button]:hidden overflow-y-auto" style={{ backgroundColor: '#FFFFFF' }}>
+        <span style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', borderWidth: 0 }}>
           <SheetTitle>전체 메뉴</SheetTitle>
-        </VisuallyHidden.Root>
+        </span>
 
         {/* Profile row + Close button */}
         <div className="flex items-start justify-between px-6 pt-10">
@@ -62,7 +61,7 @@ const SideMenu = ({ open, onClose, memberName, employeeType }: SideMenuProps) =>
             <button
               key={item.label}
               onClick={() => handleNavigate(item.path)}
-              className="block w-full py-3.5 text-left text-[18px] font-bold text-foreground"
+              className="pressable block w-full py-3.5 text-left text-[18px] font-bold text-foreground"
             >
               {item.label}
             </button>
@@ -78,7 +77,7 @@ const SideMenu = ({ open, onClose, memberName, employeeType }: SideMenuProps) =>
             <button
               key={item.label}
               onClick={() => handleNavigate(item.path)}
-              className="block w-full py-2.5 text-left text-[15px] text-muted-foreground"
+              className="pressable block w-full py-2.5 text-left text-[15px] text-muted-foreground"
             >
               {item.label}
             </button>

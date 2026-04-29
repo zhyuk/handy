@@ -1,3 +1,5 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -7,13 +9,23 @@
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
+
 *::-webkit-scrollbar {
   display: none;
 }
 
 @layer base {
+
+  html,
+  body,
+  * {
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    line-height: 1.4;
+    letter-spacing: -0.02em;
+  }
+
   :root {
-    --background: 220 20% 97%;
+    --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
@@ -43,29 +55,42 @@
 
     --radius: 0.75rem;
 
-    /* App-specific tokens */
-    --status-green: 142 71% 45%;
-    --status-green-light: 142 76% 94%;
-    --status-purple: 271 65% 60%;
-    --status-purple-light: 270 80% 96%;
-    --status-orange: 24 95% 53%;
-    --status-orange-light: 33 100% 96%;
+    /* Status colors */
+    --status-green: 155 85% 43%;
+    --status-green-light: 141 63% 94%;
+    --status-orange: 25 100% 59%;
+    --status-orange-light: 25 100% 94%;
+    --status-blue: 230 100% 63%;
+    --status-red: 0 100% 62%;
     --status-gray: 220 13% 91%;
     --status-gray-text: 220 9% 46%;
-    --progress-green: 160 84% 39%;
-    --progress-break: 243 75% 59%;
-    --progress-late: 40 96% 56%;
-    --status-late: 24 95% 53%;
-    --status-late-light: 33 100% 96%;
-    --status-absent: 0 84% 60%;
-    --status-absent-light: 0 86% 95%;
-    --toast-bg: 220 10% 30%;
-    --toast-foreground: 0 0% 100%;
-    --role-badge: 231 100% 57%;
-    --role-badge-foreground: 0 0% 100%;
-    --notice-card-bg: 222 100% 93%;
-    --checklist-active: 158 83% 42%;
-    --checklist-divider: 228 4% 87%;
+    --status-late: 25 100% 59%;
+    --status-late-light: 25 100% 94%;
+    --status-absent: 0 100% 62%;
+    --status-absent-light: 10 100% 95%;
+    --status-purple: 271 65% 60%;
+    --status-purple-light: 270 80% 96%;
+
+    /* Shift colors */
+    --shift-open: 42 100% 50%;
+    --shift-open-bg: 52 88% 93%;
+    --shift-middle: 152 76% 49%;
+    --shift-middle-bg: 136 100% 96%;
+    --shift-close: 195 96% 53%;
+    --shift-close-bg: 196 100% 95%;
+
+    /* Schedule calendar tokens */
+    --schedule-cal-open: 155 85% 43%;
+    --schedule-cal-open-bg: 141 63% 94%;
+    --schedule-cal-middle: 42 100% 50%;
+    --schedule-cal-middle-bg: 52 88% 93%;
+    --schedule-cal-close: 195 96% 53%;
+    --schedule-cal-close-bg: 196 100% 95%;
+    --schedule-cal-vacation: 220 9% 46%;
+    --schedule-cal-vacation-bg: 220 13% 95%;
+    --schedule-cal-today: 231 100% 57%;
+
+    /* Schedule tokens */
     --schedule-date-range: 213 18% 73%;
     --schedule-sat: 209 100% 68%;
     --schedule-sun: 0 100% 68%;
@@ -73,20 +98,36 @@
     --schedule-shift-bg: 240 3% 97%;
     --schedule-shift-text: 233 4% 47%;
     --schedule-time: 213 5% 60%;
+
+    /* Notification */
+    --notification-bg: 231 100% 97%;
+
+    /* Badge */
+    --badge-owner: 231 100% 63%;
+    --badge-staff: 220 9% 76%;
+
+    /* Role badge */
+    --role-badge: 231 100% 57%;
+    --role-badge-foreground: 0 0% 100%;
+
+    /* Notice card */
+    --notice-card-bg: 222 100% 93%;
     --notice-author: 0 0% 55%;
     --notice-time: 0 0% 70%;
     --notice-content: 240 7% 10%;
 
-    /* Schedule calendar tokens */
-    --schedule-cal-open: 142 71% 45%;
-    --schedule-cal-open-bg: 142 76% 94%;
-    --schedule-cal-middle: 40 96% 56%;
-    --schedule-cal-middle-bg: 48 100% 93%;
-    --schedule-cal-close: 209 100% 55%;
-    --schedule-cal-close-bg: 209 100% 94%;
-    --schedule-cal-vacation: 220 9% 46%;
-    --schedule-cal-vacation-bg: 220 13% 95%;
-    --schedule-cal-today: 231 100% 57%;
+    /* Progress */
+    --progress-green: 160 84% 39%;
+    --progress-break: 243 75% 59%;
+    --progress-late: 40 96% 56%;
+
+    /* Toast */
+    --toast-bg: 220 10% 30%;
+    --toast-foreground: 0 0% 100%;
+
+    /* Checklist */
+    --checklist-active: 158 83% 42%;
+    --checklist-divider: 228 4% 87%;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -136,5 +177,143 @@
 
   body {
     @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.4;
+    letter-spacing: -0.02em;
+  }
+
+  #root {
+    min-height: 100%;
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+
+  input.focus-ring:focus,
+  textarea.focus-ring:focus {
+    outline: none;
+    box-shadow: 0 0 0 1px #4261FF;
+    border-color: #4261FF;
+  }
+
+  /* 공통 포커스 라인 */
+  input:focus:not([class*="focus-ring"]):not([type="file"]):not([type="checkbox"]):not([type="radio"]):not([data-no-focus]),
+  textarea:focus:not([class*="focus-ring"]):not([data-no-focus]) {
+    outline: none;
+    box-shadow: 0 0 0 1px #4261FF;
+    border-color: #4261FF !important;
+  }
+
+  [role="combobox"]:focus,
+  [role="listbox"]:focus,
+  [contenteditable="true"]:focus,
+  .select-trigger:focus,
+  .select-trigger:active {
+    outline: none !important;
+    border-color: hsl(var(--primary)) !important;
+    box-shadow: 0 0 0 1px hsl(var(--primary)) !important;
+  }
+
+  .select-trigger--active {
+    border-color: hsl(var(--primary)) !important;
+    box-shadow: 0 0 0 1px hsl(var(--primary)) !important;
+  }
+}
+
+@layer utilities {
+
+  /* pressable: 버튼/클릭요소 active 효과 */
+  .pressable {
+    transition: transform 150ms ease, opacity 150ms ease;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  .pressable:active {
+    transform: scale(0.96);
+    opacity: 0.80;
+  }
+
+  /* 페이지 전환: 오른쪽에서 슬라이드 인 */
+  @keyframes page-slide-in {
+    from {
+      opacity: 0;
+      transform: translateX(40px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes page-fade-in {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes page-fade-out {
+    from {
+      opacity: 1;
+    }
+
+    to {
+      opacity: 0;
+    }
+  }
+
+  .page-enter {
+    animation: page-slide-in 280ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  .page-fade-enter {
+    animation: page-fade-in 200ms ease both;
+  }
+
+  .page-fade-exit {
+    animation: page-fade-out 200ms ease both;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scroll-snap-x {
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .snap-start {
+    scroll-snap-align: start;
+  }
+
+  .snap-center {
+    scroll-snap-align: center;
   }
 }

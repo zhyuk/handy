@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, ChevronDown, X, CalendarClock, Palmtree, Trash2 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
-import BottomNav from "@/components/home/BottomNav";
+import BottomNav from "@/components/home/employee/BottomNav";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { getMySchedule, getAllSchedule, getAllScheduleDetail, getScheduleChange, deleteScheduleChange } from "@/api/schedule";
@@ -621,7 +621,7 @@ const Schedule = () => {
         </button>
       </div>
 
-      <BottomNav activeTab="home" onTabChange={() => { }} />
+      {/* <BottomNav activeTab="home" onTabChange={() => { }} /> */}
     </div>
   );
 };

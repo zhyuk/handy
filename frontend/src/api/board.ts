@@ -129,6 +129,7 @@ export async function modifyBoard(
     const response = await fetch(`${BASE_URL}/api/common/board/modify`, {
         method: "POST",
         body: formData,
+        credentials: 'include',
     });
     if (!response.ok) throw new Error("게시글 수정 실패");
     return response.json();
@@ -138,6 +139,7 @@ export async function modifyBoard(
 export async function deleteBoard(boardId: number) {
     const response = await fetch(`${BASE_URL}/api/common/board/${boardId}`, {
         method: "DELETE",
+        credentials: 'include',
     });
     if (!response.ok) throw new Error("게시글 삭제 실패");
     return response.json();
@@ -158,7 +160,8 @@ export async function addComment(boardId: number, content: string, parentId: num
 // 댓글 삭제
 export async function deleteComment(commentId: number) {
     const response = await fetch(`${BASE_URL}/api/common/board/comment/${commentId}`, {
-        method: "DELETE",  // ← 추가
+        method: "DELETE",
+        credentials: 'include',
     });
     if (!response.ok) throw new Error("댓글 삭제 실패");
     return response.json();

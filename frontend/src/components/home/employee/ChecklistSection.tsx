@@ -47,7 +47,6 @@ const ChecklistSection = ({ userName, storeId }: ChecklistSectionProps) => {
   };
 
   useEffect(() => {
-    const storeId = 1;
     const employeeId = 1;
     const getTodoList = async () => {
       try {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ChevronLeft, CheckCircle2, Copy, Pencil } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import BottomNav from "@/components/home/BottomNav";
+import BottomNav from "@/components/home/employee/BottomNav";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/drawer";
 import { getMyInfo } from "@/api/employee";
 import { logout } from "@/api/public";
+import { getPhotoUrl } from "@/utils/function";
 
 
 const adBanners = [
@@ -118,7 +119,7 @@ const Profile = () => {
         <div className="flex items-center gap-4 py-4 px-[20px]">
           <div className="w-[80px] h-[80px] rounded-full bg-muted overflow-hidden flex-shrink-0">
             {profileData.image_url ? (
-              <img src={profileData.image_url.startsWith('/uploads') ? `http://localhost:8000${profileData.image_url}` : profileData.image_url} alt="프로필" className="w-full h-full object-cover" />
+              <img src={getPhotoUrl(profileData.image_url)} alt="프로필" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-primary/30 to-primary/10" />
             )}
@@ -361,7 +362,7 @@ const Profile = () => {
         </DialogContent>
       </Dialog>
 
-      <BottomNav activeTab="myinfo" onTabChange={() => { }} />
+      {/* <BottomNav activeTab="myinfo" onTabChange={() => { }} /> */}
     </div>
   );
 };

@@ -1,6 +1,7 @@
-import { setRoleLabel } from "@/utils/function";
 import { X, Check, Plus } from "lucide-react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
+import { setRoleLabel } from "@/utils/function";
 
 export interface AccountType {
   id: string;
@@ -22,7 +23,7 @@ const AccountSelector = ({ open, accounts, selectedId, onSelect, onClose }: Acco
   const navigate = useNavigate();
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={onClose}>
       <div
         className="w-full max-w-lg rounded-t-3xl bg-card px-5 pb-8 pt-6 animate-in slide-in-from-bottom"
@@ -31,7 +32,7 @@ const AccountSelector = ({ open, accounts, selectedId, onSelect, onClose }: Acco
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-xl font-bold text-foreground">계정 유형 선택</h2>
-          <button onClick={onClose}>
+          <button onClick={onClose} className="pressable">
             <X className="h-6 w-6 text-foreground" />
           </button>
         </div>
@@ -44,14 +45,14 @@ const AccountSelector = ({ open, accounts, selectedId, onSelect, onClose }: Acco
               <button
                 key={account.id}
                 onClick={() => onSelect(account)}
-                className={`flex items-center justify-between rounded-xl px-4 py-4 text-left transition-colors ${isSelected ? "bg-[hsl(var(--notice-card-bg))]" : ""
+                className={`pressable flex items-center justify-between rounded-xl px-4 py-4 text-left transition-colors ${isSelected ? "bg-[hsl(var(--notice-card-bg))]" : ""
                   }`}
               >
                 <div className="flex items-center gap-2">
                   <span className="text-base font-medium text-foreground">{account.storeName}</span>
                   <span className={`rounded-full px-2 py-0.5 text-xs ${isSelected
-                    ? "bg-[hsl(var(--role-badge))] text-white"
-                    : "bg-muted text-muted-foreground"
+                      ? "bg-[hsl(var(--role-badge))] text-white"
+                      : "bg-muted text-muted-foreground"
                     }`}>
                     {setRoleLabel(account.role)}
                   </span>
@@ -63,18 +64,15 @@ const AccountSelector = ({ open, accounts, selectedId, onSelect, onClose }: Acco
         </div>
 
         {/* Add account */}
-        <button className="mt-4 flex items-center gap-1.5 px-4 py-3 text-base font-medium text-foreground" onClick={() => { navigate("/onboarding/member-type") }}>
+        <button className="pressable mt-4 flex items-center gap-1.5 px-4 py-3 text-base font-medium text-foreground" onClick={() => { onClose(); navigate("/onboarding/member-type"); }}>
           <Plus className="h-5 w-5" />
           계정 유형 추가하기
         </button>
 
-        {/* Bottom indicator */}
-        <div className="mt-4 flex justify-center">
-          <div className="h-1 w-32 rounded-full bg-foreground" />
-        </div>
+        <div className="pb-[env(safe-area-inset-bottom)]" />
       </div>
     </div>
-  );
+    , document.body);
 };
 
 export default AccountSelector;

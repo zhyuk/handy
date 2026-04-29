@@ -122,3 +122,20 @@ export async function getNotification(unread_only = false) {
 export async function markNotificationRead(id: string) {
     await fetch(`${BASE_URL}/api/common/notification/${id}/read`, { method: 'PATCH' });
 }
+
+// 회원탈퇴 사유 추가
+export async function addWithdrawalReason(member_id: number, reason: string) {
+    const response = await fetch(`${BASE_URL}/api/common/withdrawal`, {
+        method: "POST",
+        body: JSON.stringify({ member_id, reason })
+    });
+    if (!response.ok) throw new Error("회원 탈퇴 추가 실패");
+    return response.json();
+}
+
+// 회원탈퇴 상태 변경
+export async function UpdateWithdrawalMember(member_id: number) {
+    const response = await fetch(`${BASE_URL}/api/auth/withdrawal/${member_id}`);
+    if (!response.ok) throw new Error("회원 탈퇴 처리 실패");
+    return response.json();
+}

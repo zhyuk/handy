@@ -26,16 +26,16 @@ interface AttendanceDetailSheetProps {
 }
 
 const STATUS_BADGE: Record<AttendanceStatus, { bg: string; color: string; label: string }> = {
-  "결근": { bg: '#FFEAE6', color: '#FF3D3D', label: '결근' },
-  "근무전": { bg: '#F7F7F8', color: '#AAB4BF', label: '근무전' },
-  "근무중": { bg: '#ECFFF1', color: '#1EDC83', label: '근무중' },
-  "미등록": { bg: '#F7F7F8', color: '#AAB4BF', label: '무일정' },
-  "지각": { bg: '#FFEEE2', color: '#FF862D', label: '지각' },
-  "퇴근": { bg: '#ECFFF1', color: '#1EDC83', label: '근무완료' },
+  "결근":     { bg: '#FFEAE6', color: '#FF3D3D', label: '결근' },
+  "근무전":   { bg: '#F7F7F8', color: '#AAB4BF', label: '근무전' },
+  "근무중":   { bg: '#ECFFF1', color: '#1EDC83', label: '근무중' },
+  "미등록":   { bg: '#F7F7F8', color: '#AAB4BF', label: '무일정' },
+  "지각":     { bg: '#FFEEE2', color: '#FF862D', label: '지각' },
+  "퇴근":     { bg: '#ECFFF1', color: '#1EDC83', label: '근무완료' },
   "근무완료": { bg: '#ECFFF1', color: '#1EDC83', label: '근무완료' },
-  "휴가": { bg: '#F7F7F8', color: '#AAB4BF', label: '휴가' },
-  "휴무": { bg: '#FFE8E8', color: '#FF5959', label: '휴무' },
-  "휴게중": { bg: '#FFEEE2', color: '#FF862D', label: '휴게중' },
+  "휴가":     { bg: '#F7F7F8', color: '#AAB4BF', label: '휴가' },
+  "휴무":     { bg: '#FFE8E8', color: '#FF5959', label: '휴무' },
+  "휴게중":   { bg: '#FFEEE2', color: '#FF862D', label: '휴게중' },
 };
 
 const SHIFT_BADGE: Record<string, { bg: string; color: string }> = {
@@ -90,15 +90,14 @@ const AttendanceDetailSheet = ({ open, detail, onClose, onRequestEdit }: Attenda
 
         {/* 상태 배지 */}
         <div className="flex items-center gap-2 mb-3 flex-wrap">
+          {/* 지각: 지각 + 근무완료 */}
           {isLate && (
             <>
               <span style={badgeStyle('#FFEEE2', '#FF862D')}>지각</span>
-              {detail.overtimeMinutes > 0 && (
-                <span style={badgeStyle('#E8F3FF', '#7488FE')}>연장</span>
-              )}
               <span style={badgeStyle('#ECFFF1', '#1EDC83')}>근무완료</span>
             </>
           )}
+          {/* 지각 아니고 근무완료/퇴근 */}
           {!isLate && (detail.status === "근무완료" || detail.status === "퇴근") && (
             <>
               {detail.overtimeMinutes > 0 && (
@@ -107,6 +106,7 @@ const AttendanceDetailSheet = ({ open, detail, onClose, onRequestEdit }: Attenda
               <span style={badgeStyle('#ECFFF1', '#1EDC83')}>근무완료</span>
             </>
           )}
+          {/* 그 외 상태 */}
           {!isLate && detail.status !== "근무완료" && detail.status !== "퇴근" && (
             <span style={badgeStyle(badge.bg, badge.color)}>{badge.label}</span>
           )}

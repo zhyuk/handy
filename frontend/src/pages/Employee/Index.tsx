@@ -3,14 +3,14 @@ import { ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import HomeHeader from "@/components/home/HomeHeader";
 import NoticeCards from "@/components/home/NoticeCards";
-import AttendanceCard, { type AttendanceStatus } from "@/components/home/AttendanceCard";
-import ChecklistSection from "@/components/home/ChecklistSection";
+import AttendanceCard, { type AttendanceStatus } from "@/components/home/employee/AttendanceCard";
+import ChecklistSection from "@/components/home/employee/ChecklistSection";
 import PromoBanner from "@/components/home/PromoBanner";
 import StoreNotices from "@/components/home/StoreNotices";
 import WeeklySchedule from "@/components/home/WeeklySchedule";
 import SalaryPreview from "@/components/home/SalaryPreview";
-import BottomNav from "@/components/home/BottomNav";
-import AttendanceMapDialog from "@/components/home/AttendanceMapDialog";
+import BottomNav from "@/components/home/employee/BottomNav";
+import AttendanceMapDialog from "@/components/home/employee/AttendanceMapDialog";
 import BreakConfirmDialog from "@/components/home/BreakConfirmDialog";
 import UnscheduledClockInDialog from "@/components/home/UnscheduledClockInDialog";
 import SideMenu from "@/components/home/SideMenu";
@@ -95,8 +95,11 @@ const Index = () => {
           role: s.role,
           employeeType: s.employee_type ?? "",
         }));
-        setAccounts(mapped);
-        setSelectedAccount(mapped[0] ?? null);
+        setAccounts(mapped); // 여기 추가
+        const employeeAccount = mapped.find(a => a.role === "employee");
+        const firstAccount = employeeAccount ?? mapped[0] ?? null;
+        setSelectedAccount(firstAccount);
+        localStorage.setItem("currentRole", firstAccount?.role ?? "employee");
       } catch (err) {
         navigate("/");
       } finally {
@@ -175,6 +178,16 @@ const Index = () => {
   };
 
   const employeeId = Number(selectedAccount?.id ?? 0);
+
+  const handleAccountSelect = (account: AccountType) => {
+    localStorage.setItem("currentRole", account.role);
+    if (account.role === "owner") {
+      navigate("/owner/home", { state: { storeMemberId: account.id } });
+    } else {
+      setSelectedAccount(account);
+      setAccountSelectorOpen(false);
+    }
+  };
 
   const handleClockIn = useCallback(async () => {
     await clockIn(employeeId);
@@ -281,6 +294,8 @@ const Index = () => {
   const scheduleStart = workSchedule?.work_start ?? null;
   const scheduleEnd = workSchedule?.work_end ?? null;
 
+  // console.log(selectedAccount);
+
   return (
     <div className="mx-auto min-h-screen max-w-lg bg-background pb-20">
       <HomeHeader
@@ -378,16 +393,13 @@ const Index = () => {
         </button>
       </div>
 
-      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+      {/* <BottomNav activeTab={activeTab} onTabChange={setActiveTab} /> */}
 
       <AttendanceMapDialog
         open={mapDialogOpen}
         type={mapDialogType}
         onConfirm={mapDialogType === "clock_in" ? handleClockIn : handleClockOut}
         onCancel={() => setMapDialogOpen(false)}
-        storeLat={storeLocation?.lat ?? 0}
-        storeLng={storeLocation?.lng ?? 0}
-        storeRadius={storeLocation?.radius ?? 100}
       />
       <BreakConfirmDialog
         open={breakDialogOpen}
@@ -399,10 +411,7 @@ const Index = () => {
         open={accountSelectorOpen}
         accounts={accounts}
         selectedId={selectedAccount.id}
-        onSelect={(account) => {
-          setSelectedAccount(account);
-          setAccountSelectorOpen(false);
-        }}
+        onSelect={handleAccountSelect}
         onClose={() => setAccountSelectorOpen(false)}
       />
       <UnscheduledClockInDialog

@@ -30,7 +30,6 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
-
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
@@ -62,6 +61,24 @@ export default {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+        },
+        status: {
+          green: "hsl(var(--status-green))",
+          red: "hsl(var(--status-red))",
+          orange: "hsl(var(--status-orange))",
+          blue: "hsl(var(--status-blue))",
+        },
+        shift: {
+          open: "hsl(var(--shift-open))",
+          "open-bg": "hsl(var(--shift-open-bg))",
+          middle: "hsl(var(--shift-middle))",
+          "middle-bg": "hsl(var(--shift-middle-bg))",
+          close: "hsl(var(--shift-close))",
+          "close-bg": "hsl(var(--shift-close-bg))",
+        },
+        badge: {
+          owner: "hsl(var(--badge-owner))",
+          staff: "hsl(var(--badge-staff))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",

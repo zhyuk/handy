@@ -5,8 +5,6 @@ import { LoginRequest } from "@/types/login";
 import { useNavigate } from "react-router-dom";
 import { getMyStores } from "@/api/public";
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? '';
-
 const Login = () => {
     const navigate = useNavigate();
 
@@ -42,7 +40,7 @@ const Login = () => {
     const handleLogin = async () => {
         try {
             if (hasInput) {
-                const res = await fetch(`${BASE_URL}/api/auth/login`, {
+                const res = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -111,11 +109,12 @@ const Login = () => {
 
     // 카카오 로그인 
     const LoadKakaoLogin = () => {
-        window.location.href = `${BASE_URL}/api/auth/kakao/login`; //
+        window.location.href = "/api/auth/kakao/login";
     };
 
+    // 구글 로그인
     const LoadGoogleLogin = () => {
-        window.location.href = `${BASE_URL}/api/auth/google/login`; //
+        window.location.href = "/api/auth/google/login";
     }
 
     // 애플 로그인
@@ -123,17 +122,15 @@ const Login = () => {
         window.AppleID.auth.init({
             clientId: 'com.handy.handy3529',
             scope: 'name email',
-            // 1. redirectURI도 백엔드 배포 주소로 변경해야 합니다.
-            redirectURI: `${BASE_URL}/api/auth/apple/callback`,
-            usePopup: true
+            redirectURI: 'https://local.handy.com/api/auth/apple/callback',
+            usePopup: true  // ← 이게 핵심!
         });
 
         try {
             const response = await window.AppleID.auth.signIn();
             const { code, id_token } = response.authorization;
 
-            // 2. 인증 정보를 백엔드로 전달 (이 부분은 이미 잘 수정하셨습니다)
-            const res = await fetch(`${BASE_URL}/api/auth/apple/callback`, {
+            const res = await fetch('/api/auth/apple/callback', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: new URLSearchParams({ code, id_token })
@@ -141,7 +138,6 @@ const Login = () => {
 
             const data = await res.json();
 
-            // 3. 내부 이동은 HashRouter를 쓰시니 그대로 두셔도 됩니다.
             if (data.redirect === 'signup') {
                 window.location.href = '/#/signup?type=social';
             } else if (data.redirect === 'onboarding') {

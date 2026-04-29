@@ -68,7 +68,7 @@ const BusinessVerify = () => {
     const handleSubmit = () => {
         if (storeName && address && businessType && ownerName && ownerPhone) {
             navigate("/owner/business/upload", {
-                state: { storeName, address, businessType, ownerName, ownerPhone }
+                state: { rawDigits: formatBusinessNumber(rawDigits), storeName, address, businessType, ownerName, ownerPhone }
             });
         } else {
             alert("모든 필수 정보를 입력해주세요.");

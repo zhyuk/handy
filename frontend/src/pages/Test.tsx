@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Users, Calendar, FileText, User } from 'lucide-react';
-import { BottomNav } from '@/components/BottomNav';
+// import { BottomNav } from '@/components/BottomNav';
 import OpenCamera from '@/components/OpenCamera';
 import GpsTest from '@/components/GpsTest';
 import { useEffect } from 'react';
@@ -129,7 +129,7 @@ const Index = () => {
         </div>
       </section>
 
-      <BottomNav currentPath="/" />
+      {/* <BottomNav currentPath="/" /> */}
     </div>
   );
 };

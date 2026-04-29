@@ -9,7 +9,7 @@ type Screen = "empty" | "preview" | "submitted";
 
 const BusinessVerifyUpload = () => {
   const location = useLocation();
-  const { storeName, address, businessType, ownerName, ownerPhone } = location.state || {};
+  const { rawDigits, storeName, address, businessType, ownerName, ownerPhone } = location.state || {};
   const [screen, setScreen] = useState<Screen>("empty");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -45,6 +45,7 @@ const BusinessVerifyUpload = () => {
     console.log(file);
 
     const formData = new FormData();
+    formData.append("rawDigits", rawDigits);
     formData.append("image", file);
     formData.append("storeName", storeName);
     formData.append("address", address);

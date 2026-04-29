@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Info, X } from "lucide-react";
-import BottomNav from "@/components/home/BottomNav";
+import BottomNav from "@/components/home/employee/BottomNav";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 interface DayPay {
@@ -430,7 +430,7 @@ const SalaryManagement = () => {
         </div>
       )}
 
-      <BottomNav activeTab="salary" onTabChange={() => { }} />
+      {/* <BottomNav activeTab="salary" onTabChange={() => { }} /> */}
     </div>
   );
 };

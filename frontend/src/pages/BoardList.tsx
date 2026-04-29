@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, Search, MessageSquare, Plus } from "lucide-react";
-import BottomNav from "@/components/home/BottomNav";
+import BottomNav from "@/components/home/employee/BottomNav";
 import { Post, fetchBoardList } from "@/api/board";
 
 const categories = ["전체", "공지사항", "건의사항", "비품관리", "대타요청", "일반 게시글"];

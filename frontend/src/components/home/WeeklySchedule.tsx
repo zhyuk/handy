@@ -35,7 +35,7 @@ const WeeklySchedule = ({ dateRange, days }: WeeklyScheduleProps) => {
             <span className="text-sm font-normal text-[hsl(var(--schedule-date-range))]">({dateRange})</span>
           </p>
         </div>
-        <button onClick={() => navigate("/schedule")} className="flex items-center text-xs text-muted-foreground mb-0.5">
+        <button onClick={() => navigate("/schedule")} className="pressable flex items-center text-muted-foreground mb-0.5" style={{ fontSize: '14px' }}>
           더보기 <ChevronRight className="h-3.5 w-3.5" />
         </button>
       </div>
@@ -83,7 +83,12 @@ const WeeklySchedule = ({ dateRange, days }: WeeklyScheduleProps) => {
                 const shiftLabel = getShiftLabel(d.startTime);
                 return (
                   <div key={d.day + "shift"} className="flex flex-1 justify-center">
-                    <span className="rounded bg-[hsl(var(--schedule-shift-bg))] px-2.5 py-1 text-xs font-medium text-[hsl(var(--schedule-shift-text))]">
+                    <span className="rounded px-2.5 py-1 text-xs font-medium" style={
+                      shiftLabel === '오픈' ? { backgroundColor: '#FDF9DF', color: '#FFB300' } :
+                      shiftLabel === '미들' ? { backgroundColor: '#ECFFF1', color: '#1EDC83' } :
+                      shiftLabel === '마감' ? { backgroundColor: '#E8F9FF', color: '#14C1FA' } :
+                      { backgroundColor: '#F7F7F8', color: '#AAB4BF' }
+                    }>
                       {shiftLabel || "무일정"}
                     </span>
                   </div>

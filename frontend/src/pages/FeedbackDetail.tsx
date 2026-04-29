@@ -1,7 +1,6 @@
+import { getPhotoUrl } from "@/utils/function";
 import { ChevronLeft } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
-
-const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 
 const FeedbackDetail = () => {
   const navigate = useNavigate();
@@ -24,6 +23,8 @@ const FeedbackDetail = () => {
       </div>
     );
   }
+
+  console.log(item);
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#FFFFFF' }}>
@@ -70,7 +71,7 @@ const FeedbackDetail = () => {
               <span className="text-sm text-muted-foreground w-16 flex-shrink-0">이미지</span>
               <div className="flex gap-2 overflow-x-auto">
                 {item.images.map((img, idx) => (
-                  <img key={idx} src={img.startsWith('http') || img.startsWith('data:') ? img : `${BASE_URL}${img}`} alt="" className="w-36 h-36 rounded-lg object-cover flex-shrink-0" />
+                  <img key={idx} src={getPhotoUrl(img)} alt="" className="w-36 h-36 rounded-lg object-cover flex-shrink-0" />
                 ))}
               </div>
             </div>
