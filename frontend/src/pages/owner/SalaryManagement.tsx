@@ -143,7 +143,7 @@ function PayslipTab({ navigate }: { navigate: (path: string) => void }) {
       <div style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)', marginBottom: '10px', overflow: 'hidden' }}>
         <button className="pressable w-full text-left"
           style={{ padding: '14px 16px 10px', display: 'block' }}
-          onClick={() => { if (isPaid) { navigate(`/salary/payslip/publish?name=${encodeURIComponent(s.name)}&published=true&py=${selectedYear}&pm=${selectedMonth}`); } else { navigate(`/salary/payslip?name=${encodeURIComponent(s.name)}&py=${selectedYear}&pm=${selectedMonth}`); } }}>
+          onClick={() => { if (isPaid) { navigate(`/owner/salary/payslip/publish?name=${encodeURIComponent(s.name)}&published=true&py=${selectedYear}&pm=${selectedMonth}`); } else { navigate(`/owner/salary/payslip?name=${encodeURIComponent(s.name)}&py=${selectedYear}&pm=${selectedMonth}`); } }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: s.avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 700, color: '#FFFFFF', flexShrink: 0, opacity: isPaid ? 0.6 : 1 }}>{s.name.charAt(0)}</div>
@@ -539,7 +539,7 @@ export default function SalaryManagement() {
         {/* Header */}
         <div className="sticky top-0 z-10" style={{ backgroundColor: '#FFFFFF' }}>
           <div className="flex items-center gap-2 px-2 pt-4 pb-2">
-            <button onClick={() => navigate('/')} className="pressable p-1"><ChevronLeft className="h-6 w-6 text-foreground" /></button>
+            <button onClick={() => navigate('/owner/home')} className="pressable p-1"><ChevronLeft className="h-6 w-6 text-foreground" /></button>
             <h1 style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.02em', color: '#19191B' }}>급여 관리</h1>
           </div>
           <div className="flex border-b border-border px-5" style={{ gap: '36px' }}>
@@ -1045,7 +1045,7 @@ export default function SalaryManagement() {
                       );
                       return list.map((s, i) => (
                         <button key={i} className="w-full flex items-center justify-between px-5 py-4"
-                          onClick={() => navigate(`/salary/detail?name=${encodeURIComponent(s.name)}&date=${dateParam}`)}>
+                          onClick={() => navigate(`/owner/salary/detail?name=${encodeURIComponent(s.name)}&date=${dateParam}`)}>
                           <div className="text-left">
                             <div className="flex items-center gap-1.5 mb-1">
                               <span className="text-[14px] font-medium text-foreground">{s.name}</span>
@@ -1152,7 +1152,7 @@ export default function SalaryManagement() {
                       const lastDayOfMonthBS = new Date(year, month + 1, 0).getDate();
                       const firstPaydayBS = PAYDAY.map(p => p === 0 ? lastDayOfMonthBS : p).sort((a, b) => a - b)[0];
                       const isPaidBS = (selectedDay?.getDate() ?? 0) <= firstPaydayBS;
-                      navigate(`/salary/detail?name=${encodeURIComponent(s.name)}&date=${dateParam}${isPaidBS ? '&paid=true' : ''}&from=all`);
+                      navigate(`/owner/salary/detail?name=${encodeURIComponent(s.name)}&date=${dateParam}${isPaidBS ? '&paid=true' : ''}&from=all`);
                     }}>
                     <div className="flex items-center gap-3">
                       <div style={{ position: 'relative', width: '40px', height: '40px', flexShrink: 0 }}>
@@ -1353,7 +1353,7 @@ export default function SalaryManagement() {
                   const lastDayOfMonth3 = new Date(year, month + 1, 0).getDate();
                   const firstPayday3 = PAYDAY.map(p => p === 0 ? lastDayOfMonth3 : p).sort((a, b) => a - b)[0];
                   const isPaid3 = (selectedDay?.getDate() ?? 0) <= firstPayday3;
-                  navigate(`/salary/detail?name=${encodeURIComponent(selectedStaff?.name || '')}&date=${dateParam}${isPaid3 ? '&paid=true' : ''}`);
+                  navigate(`/owner/salary/detail?name=${encodeURIComponent(selectedStaff?.name || '')}&date=${dateParam}${isPaid3 ? '&paid=true' : ''}`);
                 }}>
                 급여 상세보기
               </button>

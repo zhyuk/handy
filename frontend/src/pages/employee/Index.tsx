@@ -100,6 +100,7 @@ const Index = () => {
         const firstAccount = employeeAccount ?? mapped[0] ?? null;
         setSelectedAccount(firstAccount);
         localStorage.setItem("currentRole", firstAccount?.role ?? "employee");
+        localStorage.setItem("currentStoreId", String(firstAccount?.storeId ?? ""));
       } catch (err) {
         navigate("/");
       } finally {
@@ -127,7 +128,7 @@ const Index = () => {
             body: JSON.stringify({ store_id: storeId }),
             credentials: 'include',
           }).then(r => r.json()),
-          getNotification(true),
+          getNotification(true, storeId),
         ]);
 
       // 오늘 근무일정
@@ -153,15 +154,8 @@ const Index = () => {
       if (storeLocation.status === 'fulfilled') setStoreLocation(storeLocation.value);
 
       // 알림
-      if (notifications.status === 'fulfilled') {
-        setNotices(notifications.value.map((n: any) => ({
-          id: String(n.id),
-          type: n.type,
-          title: n.type,
-          description: n.message,
-          reference_id: n.reference_id,
-        })));
-      }
+      if (notifications.status === 'fulfilled') setNotices(notifications.value);
+
     };
 
     fetchAll();
@@ -181,6 +175,7 @@ const Index = () => {
 
   const handleAccountSelect = (account: AccountType) => {
     localStorage.setItem("currentRole", account.role);
+    localStorage.setItem("currentStoreId", String(account.storeId));
     if (account.role === "owner") {
       navigate("/owner/home", { state: { storeMemberId: account.id } });
     } else {

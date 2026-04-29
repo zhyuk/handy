@@ -168,7 +168,7 @@ export default function PayslipDetail() {
         {/* Header */}
         <div className="sticky top-0 z-10" style={{ backgroundColor: '#FFFFFF' }}>
           <div className="flex items-center gap-2 px-2 pt-4 pb-2">
-            <button onClick={() => from === 'detail' ? navigate(-1) : navigate("/salary?tab=payslip", { replace: true })} className="pressable p-1">
+            <button onClick={() => from === 'detail' ? navigate(-1) : navigate("/owner/salary?tab=payslip", { replace: true })} className="pressable p-1">
               <ChevronLeft className="h-6 w-6 text-foreground" />
             </button>
             <h1 style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.02em', color: '#19191B' }}>급여명세서 확인</h1>
@@ -465,12 +465,12 @@ export default function PayslipDetail() {
             ) : (
               <>
                 <button
-                  onClick={() => navigate(`/salary/payslip/edit?name=${encodeURIComponent(staff.name)}`)}
+                  onClick={() => navigate(`/owner/salary/payslip/edit?name=${encodeURIComponent(staff.name)}`)}
                   style={{ width: '122px', height: '56px', flexShrink: 0, backgroundColor: '#DEEBFF', borderRadius: '16px', border: 'none', fontSize: '16px', fontWeight: 700, color: '#4261FF', cursor: 'pointer' }}>
                   수정하기
                 </button>
                 <button
-                  onClick={() => navigate(`/salary/payslip/publish?name=${encodeURIComponent(staff.name)}${isModified ? "&modified=true" : ""}${changesRaw ? "&changes=" + encodeURIComponent(changesRaw) : ""}`)}
+                  onClick={() => navigate(`/owner/salary/payslip/publish?name=${encodeURIComponent(staff.name)}${isModified ? "&modified=true" : ""}${changesRaw ? "&changes=" + encodeURIComponent(changesRaw) : ""}`)}
                   style={{ flex: 1, height: '56px', backgroundColor: '#4261FF', borderRadius: '16px', border: 'none', fontSize: '16px', fontWeight: 700, color: '#FFFFFF', cursor: 'pointer' }}>
                   급여명세서 미리보기
                 </button>
@@ -514,7 +514,7 @@ export default function PayslipDetail() {
             </div>
             <div className="overflow-y-auto py-[10px]" style={{ maxHeight: '60vh' }}>
               {PAYSLIP_STAFF.filter(s => s.status === "지급 전").map((s, i) => (
-                <button key={i} onClick={() => { setStaffPickerOpen(false); navigate(`/salary/payslip?name=${encodeURIComponent(s.name)}`); }}
+                <button key={i} onClick={() => { setStaffPickerOpen(false); navigate(`/owner/salary/payslip?name=${encodeURIComponent(s.name)}`); }}
                   className="pressable w-full flex items-center justify-between px-6 py-[10px]"
                   style={{ backgroundColor: s.name === staff.name ? '#F0F4FF' : '#FFFFFF' }}>
                   <div className="flex items-center gap-3">

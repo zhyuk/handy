@@ -43,7 +43,7 @@ const Withdrawal = () => {
         </p>
       </div>
       <div className="px-5 pb-8">
-        <button onClick={() => navigate("/login")} className="w-full rounded-2xl py-4 font-semibold"
+        <button onClick={() => navigate("/")} className="w-full rounded-2xl py-4 font-semibold"
           style={{ backgroundColor: '#4261FF', color: '#FFFFFF', fontSize: '16px' }}>
           확인
         </button>

@@ -69,7 +69,7 @@ export default function StaffDetail() {
   };
 
   const goEdit = (section: string) => {
-    navigate(`/staff/${staff.id}/edit?section=${encodeURIComponent(section)}`);
+    navigate(`/owner/staff/${staff.id}/edit?section=${encodeURIComponent(section)}`);
   };
 
   const location = useLocation();
@@ -107,7 +107,7 @@ export default function StaffDetail() {
 
         <div className="sticky top-0 z-10" style={{ backgroundColor: '#FFFFFF' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '16px 8px 8px' }}>
-            <button onClick={() => navigate("/staff")} className="pressable p-1">
+            <button onClick={() => navigate("/owner/staff")} className="pressable p-1">
               <ChevronLeft className="w-6 h-6 text-foreground" />
             </button>
             <h1 style={{ fontSize: 'clamp(18px, 5vw, 20px)', fontWeight: 700, color: '#19191B', letterSpacing: '-0.02em' }}>직원 정보 상세</h1>
@@ -543,7 +543,7 @@ export default function StaffDetail() {
             <div style={{ fontSize: "48px", marginBottom: "12px" }}>🎉</div>
             <h3 style={{ fontSize: "20px", fontWeight: 700, color: "#19191B", textAlign: "center", marginBottom: "8px" }}>직원 등록 완료!</h3>
             <p style={{ fontSize: "14px", color: "#70737B", textAlign: "center", lineHeight: "1.7", marginBottom: "24px", whiteSpace: "pre-line" }}>{"모든 정보가 등록되었어요.\n이제 급여 계산과 일정 관리를\n시작할 수 있어요."}</p>
-            <button onClick={() => { handleCompletionConfirm(); navigate("/staff"); }}
+            <button onClick={() => { handleCompletionConfirm(); navigate("/owner/staff"); }}
               style={{ width: "100%", height: "52px", borderRadius: "12px", backgroundColor: "#4261FF", border: "none", fontSize: "16px", fontWeight: 700, color: "#FFFFFF", cursor: "pointer", marginBottom: "10px" }}>
               직원 관리하러 가기 →
             </button>

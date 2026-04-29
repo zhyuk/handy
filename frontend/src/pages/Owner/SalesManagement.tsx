@@ -95,7 +95,7 @@ export default function SalesManagement() {
     setUnreadDays(next);
     saveUnreadDays(year, month, next);
     const dateParam = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    navigate(`/sales/daily?date=${dateParam}`);
+    navigate(`/owner/sales/daily?date=${dateParam}`);
   };
 
   const totalNetSales = 7457391;
@@ -108,7 +108,7 @@ export default function SalesManagement() {
         {/* Header */}
         <div className="sticky top-0 z-10" style={{ backgroundColor: '#FFFFFF' }}>
           <div className="flex items-center gap-2 px-2 pt-4 pb-2">
-            <button onClick={() => navigate('/')} className="pressable p-1">
+            <button onClick={() => navigate('/owner/home')} className="pressable p-1">
               <ChevronLeft className="h-6 w-6 text-foreground" />
             </button>
             <h1 style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.02em', color: '#19191B' }}>매출 관리</h1>
@@ -137,7 +137,7 @@ export default function SalesManagement() {
             <span style={{ fontSize: '14px', color: '#70737B' }}>{totalGrossSales.toLocaleString()}원</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
-            <button onClick={() => navigate(`/sales/monthly?year=${year}&month=${month + 1}`)}
+            <button onClick={() => navigate(`/owner/sales/monthly?year=${year}&month=${month + 1}`)}
               style={{ display: 'flex', alignItems: 'center', gap: '2px', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
               <span style={{ fontSize: '13px', color: '#4261FF', fontWeight: 500 }}>세부 내역 보기</span>
               <ChevronRight style={{ width: '14px', height: '14px', color: '#4261FF' }} />

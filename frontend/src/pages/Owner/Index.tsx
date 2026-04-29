@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 import { subDays, addDays, isToday, format } from "date-fns";
@@ -9,7 +9,6 @@ import { cn } from "@/lib/utils";
 import Header from "@/components/home/owner/Header";
 import SideMenu from "@/components/home/SideMenu";
 import AccountBottomSheet from "@/components/home/owner/AccountBottomSheet";
-import NotificationBar from "@/components/home/owner/NotificationBar";
 import AttendanceSection from "@/components/home/owner/AttendanceSection";
 import BannerCarousel from "@/components/home/owner/BannerCarousel";
 import ChecklistSection from "@/components/home/owner/ChecklistSection";
@@ -17,22 +16,10 @@ import SalesSection from "@/components/home/owner/SalesSection";
 import RecentPostsSection from "@/components/home/owner/RecentPostsSection";
 import StoreManagementSection from "@/components/home/owner/StoreManagementSection";
 import HomeHeader from "@/components/home/HomeHeader";
-import { getMe, getMyStores } from "@/api/public";
+import { getMe, getMyStores, getNotification, markNotificationRead } from "@/api/public";
 import AccountSelector, { type AccountType } from "@/components/home/AccountSelector";
-import { setRoleLabel } from "@/utils/function";
-
-const ACCOUNTS = [
-  { id: "1", storeName: "메가커피 동작점", employeeType: "사장님" as const },
-  { id: "2", storeName: "컴포즈커피 노량진역점", employeeType: "사장님" as const },
-  { id: "3", storeName: "빽다방 노량진역점", employeeType: "직원" as const },
-  { id: "4", storeName: "샤브올데이 노량진역점", employeeType: "직원" as const },
-];
-
-const NOTIFICATIONS = [
-  { id: "1", icon: "staff" as const, title: "직원관리", description: "새로운 직원 가입 신청 내역이 있어요", count: 2 },
-  { id: "2", icon: "board" as const, title: "게시판", description: "'건의사항'에 새로운 게시글이 등록됐어요", count: 2 },
-  { id: "3", icon: "board" as const, title: "대타관리", description: "새로운 대타 요청이 있어요", count: 1 },
-];
+import { NotificationItem, setRoleLabel } from "@/utils/function";
+import NoticeCards from "@/components/home/NoticeCards";
 
 const ATTENDANCE_CARDS = [
   {
@@ -120,14 +107,19 @@ export default function Index() {
   const [calendarOpen, setCalendarOpen] = useState(false);
 
   const [memberName, setMemberName] = useState<string>("");
-  const handleNotificationClick = (notification: { id: string; icon: string; title: string }) => {
-    if (notification.title === "직원관리") navigate("/staff?tab=가입요청");
-  };
+
+  const handleDismissNotice = useCallback(async (id: string) => {
+    await markNotificationRead(id);
+    setNotices((prev) => prev.filter((n) => n.id !== id));
+  }, []);
 
   const [selectedAccount, setSelectedAccount] = useState<AccountType | null>(null);
   const [accounts, setAccounts] = useState<AccountType[]>([]);
   const [authLoaded, setAuthLoaded] = useState(false);
-  const [notices, setNotices] = useState<any[]>([]);
+
+  const [storeNotices, setStoreNotices] = useState<any[]>([]);
+
+  const [notices, setNotices] = useState<NotificationItem[]>([]);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -150,6 +142,7 @@ export default function Index() {
         const finalAccount = target ?? mapped[0] ?? null;
         setSelectedAccount(finalAccount);
         localStorage.setItem("currentRole", finalAccount?.role ?? "owner");
+        localStorage.setItem("currentStoreId", String(finalAccount?.storeId ?? ""));
       } catch (err) {
         navigate("/");
       } finally {
@@ -159,148 +152,166 @@ export default function Index() {
     initAuth();
   }, []);
 
-  const formatDate = (d: Date) => {
-    const yy = String(d.getFullYear()).slice(-2);
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    const dayName = format(d, "EEEE", { locale: ko }).charAt(0);
-    return `${yy}.${mm}.${dd} (${dayName})`;
-  };
+  useEffect(() => {
+    if (!authLoaded || !selectedAccount) return;
+    const storeId = selectedAccount.storeId;
 
-  const handleAccountSelect = (account: AccountType) => {
-    localStorage.setItem("currentRole", account.role);
-    if (account.role === "employee") {
-      navigate("/employee/home");
-    } else {
-      setSelectedAccount(account);
-      setBottomSheetOpen(false);
-    }
-  };
+    const fetchAll = async () => {
+      const [notifications] = await Promise.allSettled([
+        getNotification(true, storeId)
+      ])
 
-  if (!authLoaded || !selectedAccount) {
-    return (
-      <div className="min-h-screen max-w-lg mx-auto flex items-center justify-center">
-        <p className="text-muted-foreground text-sm">불러오는 중...</p>
-      </div>
-    );
+  if (notifications.status === 'fulfilled') setNotices(notifications.value);
+}
+
+
+fetchAll();
+
+  }, [authLoaded, selectedAccount]);
+
+const formatDate = (d: Date) => {
+  const yy = String(d.getFullYear()).slice(-2);
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const dayName = format(d, "EEEE", { locale: ko }).charAt(0);
+  return `${yy}.${mm}.${dd} (${dayName})`;
+};
+
+const handleAccountSelect = (account: AccountType) => {
+  localStorage.setItem("currentRole", account.role);
+  localStorage.setItem("currentStoreId", String(account.storeId));
+  if (account.role === "employee") {
+    navigate("/employee/home");
+  } else {
+    setSelectedAccount(account);
+    setBottomSheetOpen(false);
   }
+};
 
+if (!authLoaded || !selectedAccount) {
   return (
-    <div className="max-w-lg mx-auto min-h-screen" style={{ backgroundColor: '#FFFFFF' }}>
-      <div className="pb-24">
-
-        {/* ── sticky 블록: 헤더 + 탭 통합 ── */}
-        <div className="sticky top-0 z-10" style={{ backgroundColor: '#FFFFFF' }}>
-          <HomeHeader
-            storeName={selectedAccount.storeName}
-            roleLabel={selectedAccount.role}
-            hasNotifications={notices.length > 0}
-            onStoreClick={() => setBottomSheetOpen(true)}
-            onMenuClick={() => setSideMenuOpen(true)}
-          />
-          {/* 탭 */}
-          <div className="flex" style={{ paddingLeft: '20px', gap: '20px' }}>
-            {(["현황", "관리"] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveMainTab(tab)}
-                className="pressable"
-                style={{
-                  paddingTop: '6px',
-                  paddingBottom: '10px',
-                  fontSize: '20px',
-                  fontWeight: 700,
-                  color: activeMainTab === tab ? '#19191B' : '#AAB4BF',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  letterSpacing: '-0.02em',
-                  whiteSpace: 'nowrap' as const,
-                }}
-              >
-                매장 {tab}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* ── 알림카드: 스크롤 시 사라짐 ── */}
-        <NotificationBar notifications={NOTIFICATIONS} onNotificationClick={handleNotificationClick} />
-
-        {/* ── 날짜 선택: 스크롤 시 사라짐 ── */}
-        {activeMainTab === "현황" && (
-          <div className="flex items-center justify-between" style={{ paddingTop: '10px', paddingBottom: '10px', paddingLeft: '8px', paddingRight: '8px', backgroundColor: '#FFFFFF' }}>
-            <button onClick={() => setSelectedDate(prev => subDays(prev, 1))} className="pressable" style={{ padding: '4px 8px' }}>
-              <ChevronLeft className="w-[18px] h-[18px] text-muted-foreground" />
-            </button>
-            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-              <PopoverTrigger asChild>
-                <button className="pressable flex items-center gap-1" style={{ fontSize: '16px', fontWeight: 600, letterSpacing: '-0.02em', color: '#19191B' }}>
-                  {isToday(selectedDate) && <span style={{ color: '#4261FF' }}>[오늘]</span>}
-                  {formatDate(selectedDate)}
-                  <ChevronDown className="w-[18px] h-[18px] text-muted-foreground" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="center">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={(d) => { if (d) { setSelectedDate(d); setCalendarOpen(false); } }}
-                  className={cn("p-3 pointer-events-auto")}
-                />
-              </PopoverContent>
-            </Popover>
-            <button onClick={() => setSelectedDate(prev => addDays(prev, 1))} className="pressable" style={{ padding: '4px 8px' }}>
-              <ChevronRight className="w-[18px] h-[18px] text-muted-foreground" />
-            </button>
-          </div>
-        )}
-
-        {/* ── 콘텐츠 ── */}
-        <div style={{ backgroundColor: '#F7F7F8', borderTop: '1px solid #EBEBEB' }}>
-          {activeMainTab === "현황" ? (
-            <>
-              <AttendanceSection
-                stats={{ checkin: 7, late: 1, checkout: 2, absent: 0 }}
-                cards={ATTENDANCE_CARDS}
-                date="26.11.06 (목)"
-                hideDateSelector
-              />
-              <div style={{ height: '20px' }} />
-              <BannerCarousel />
-              <div style={{ height: '20px' }} />
-              <ChecklistSection cards={CHECKLIST_CARDS} />
-              <div style={{ height: '20px' }} />
-              <SalesSection date="11월 5일" totalSales={418000} salesAmount={418000} laborCost={185303} />
-              <div style={{ height: '20px' }} />
-              <RecentPostsSection posts={POSTS} />
-              <div style={{ height: '20px' }} />
-            </>
-          ) : (
-            <>
-              <div style={{ height: '20px' }} />
-              <BannerCarousel />
-              <div style={{ height: '20px' }} />
-              <StoreManagementSection />
-            </>
-          )}
-        </div>
-
-      </div>
-
-      <SideMenu
-        open={sideMenuOpen}
-        onClose={() => setSideMenuOpen(false)}
-        memberName={memberName}
-        employeeType={setRoleLabel(selectedAccount?.role ?? "")}
-      />
-      <AccountSelector
-        open={bottomSheetOpen}
-        accounts={accounts}
-        selectedId={selectedAccount?.id ?? ""}
-        onSelect={handleAccountSelect}
-        onClose={() => setBottomSheetOpen(false)}
-      />
+    <div className="min-h-screen max-w-lg mx-auto flex items-center justify-center">
+      <p className="text-muted-foreground text-sm">불러오는 중...</p>
     </div>
   );
+}
+
+return (
+  <div className="max-w-lg mx-auto min-h-screen" style={{ backgroundColor: '#FFFFFF' }}>
+    <div className="pb-24">
+
+      {/* ── sticky 블록: 헤더 + 탭 통합 ── */}
+      <div className="sticky top-0 z-10" style={{ backgroundColor: '#FFFFFF' }}>
+        <HomeHeader
+          storeName={selectedAccount.storeName}
+          roleLabel={selectedAccount.role}
+          hasNotifications={storeNotices.length > 0}
+          onStoreClick={() => setBottomSheetOpen(true)}
+          onMenuClick={() => setSideMenuOpen(true)}
+        />
+        {/* 탭 */}
+        <div className="flex" style={{ paddingLeft: '20px', gap: '20px' }}>
+          {(["현황", "관리"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveMainTab(tab)}
+              className="pressable"
+              style={{
+                paddingTop: '6px',
+                paddingBottom: '10px',
+                fontSize: '20px',
+                fontWeight: 700,
+                color: activeMainTab === tab ? '#19191B' : '#AAB4BF',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                letterSpacing: '-0.02em',
+                whiteSpace: 'nowrap' as const,
+              }}
+            >
+              매장 {tab}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── 알림카드: 스크롤 시 사라짐 ── */}
+      <NoticeCards notices={notices} onDismiss={handleDismissNotice} />
+
+      {/* ── 날짜 선택: 스크롤 시 사라짐 ── */}
+      {activeMainTab === "현황" && (
+        <div className="flex items-center justify-between" style={{ paddingTop: '10px', paddingBottom: '10px', paddingLeft: '8px', paddingRight: '8px', backgroundColor: '#FFFFFF' }}>
+          <button onClick={() => setSelectedDate(prev => subDays(prev, 1))} className="pressable" style={{ padding: '4px 8px' }}>
+            <ChevronLeft className="w-[18px] h-[18px] text-muted-foreground" />
+          </button>
+          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+            <PopoverTrigger asChild>
+              <button className="pressable flex items-center gap-1" style={{ fontSize: '16px', fontWeight: 600, letterSpacing: '-0.02em', color: '#19191B' }}>
+                {isToday(selectedDate) && <span style={{ color: '#4261FF' }}>[오늘]</span>}
+                {formatDate(selectedDate)}
+                <ChevronDown className="w-[18px] h-[18px] text-muted-foreground" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="center">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(d) => { if (d) { setSelectedDate(d); setCalendarOpen(false); } }}
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+          <button onClick={() => setSelectedDate(prev => addDays(prev, 1))} className="pressable" style={{ padding: '4px 8px' }}>
+            <ChevronRight className="w-[18px] h-[18px] text-muted-foreground" />
+          </button>
+        </div>
+      )}
+
+      {/* ── 콘텐츠 ── */}
+      <div style={{ backgroundColor: '#F7F7F8', borderTop: '1px solid #EBEBEB' }}>
+        {activeMainTab === "현황" ? (
+          <>
+            <AttendanceSection
+              stats={{ checkin: 7, late: 1, checkout: 2, absent: 0 }}
+              cards={ATTENDANCE_CARDS}
+              date="26.11.06 (목)"
+              hideDateSelector
+            />
+            <div style={{ height: '20px' }} />
+            <BannerCarousel />
+            <div style={{ height: '20px' }} />
+            <ChecklistSection cards={CHECKLIST_CARDS} />
+            <div style={{ height: '20px' }} />
+            <SalesSection date="11월 5일" totalSales={418000} salesAmount={418000} laborCost={185303} />
+            <div style={{ height: '20px' }} />
+            <RecentPostsSection posts={POSTS} />
+            <div style={{ height: '20px' }} />
+          </>
+        ) : (
+          <>
+            <div style={{ height: '20px' }} />
+            <BannerCarousel />
+            <div style={{ height: '20px' }} />
+            <StoreManagementSection />
+          </>
+        )}
+      </div>
+
+    </div>
+
+    <SideMenu
+      open={sideMenuOpen}
+      onClose={() => setSideMenuOpen(false)}
+      memberName={memberName}
+      employeeType={setRoleLabel(selectedAccount?.role ?? "")}
+    />
+    <AccountSelector
+      open={bottomSheetOpen}
+      accounts={accounts}
+      selectedId={selectedAccount?.id ?? ""}
+      onSelect={handleAccountSelect}
+      onClose={() => setBottomSheetOpen(false)}
+    />
+  </div>
+);
 }

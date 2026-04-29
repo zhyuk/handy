@@ -2,18 +2,8 @@ import { useEffect, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getNotice, getNotification } from "@/api/public";
+import { getLink, NotificationCategory, NotificationItem } from "@/utils/function";
 
-type NotificationCategory = "전체" | "급여" | "일정" | "게시판" | "공지";
-
-interface NotificationItem {
-  id: string;
-  type: "급여" | "게시판" | "일정" | "공지";
-  message: string;
-  reference_id?: number;
-  created_at: string;
-}
-
-const filters: NotificationCategory[] = ["전체", "급여", "일정", "게시판", "공지"];
 
 const getFilterWidth = (label: string) => label.length <= 2 ? '48px' : '60px';
 const getTagWidth = (label: string) => label.length <= 2 ? '32px' : '44px';
@@ -31,19 +21,14 @@ const formatNotificationDate = (dateStr: string) => {
   return `${month}.${date}(${day}) ${ampm} ${h}:${minutes}`;
 };
 
-const getLink = (type: string, message: string, referenceId?: number) => {
-  if (type === "게시판") return `/board/${referenceId}`;
-  if (type === "급여") return `/employee/salary/pay-stub/${referenceId}`;
-  if (type === "공지") return `/announcements/${referenceId}`;
-  if (type === "일정") {
-    if (message.includes("변경")) return `/notifications/schedule-changed/${referenceId}`;
-    if (message.includes("추가")) return `/notifications/schedule-added/${referenceId}`;
-  }
-  return undefined;
-};
-
 const Notifications = () => {
   const navigate = useNavigate();
+  const storeId = localStorage.getItem("currentStoreId");
+
+  const [currentRole] = useState(() => localStorage.getItem("currentRole") ?? "employee");
+  const filters: NotificationCategory[] = currentRole === "owner"
+    ? ["전체", "급여", "일정", "게시판", "공지", "직원관리", "대타관리"]
+    : ["전체", "급여", "일정", "게시판", "공지"];
 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [activeFilter, setActiveFilter] = useState<NotificationCategory>("전체");
@@ -51,7 +36,7 @@ const Notifications = () => {
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const data = await getNotification(false); // TODO: JWT에서 꺼내오기
+        const data = await getNotification(false, Number(storeId));
         setNotifications(data);
       } catch (err) {
         console.error(err);

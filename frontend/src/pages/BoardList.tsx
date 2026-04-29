@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ChevronLeft, Search, MessageSquare, Plus } from "lucide-react";
 import BottomNav from "@/components/home/employee/BottomNav";
 import { Post, fetchBoardList } from "@/api/board";
+import { moveToHome } from "@/utils/function";
 
 const categories = ["전체", "공지사항", "건의사항", "비품관리", "대타요청", "일반 게시글"];
 
@@ -50,10 +51,12 @@ export default function BoardList() {
     getBoardList();
   }, []);
 
+  const [currentRole] = useState(() => localStorage.getItem("currentRole") ?? "employee");
+
   return (
     <div className="min-h-screen max-w-lg mx-auto" style={{ backgroundColor: '#F7F7F8' }}>
       <div className="sticky top-0 z-10 flex items-center gap-2 px-2 pt-4 pb-2" style={{ backgroundColor: '#FFFFFF' }}>
-        <button onClick={() => navigate(-1)} className="p-1">
+        <button onClick={() => navigate(moveToHome(currentRole))} className="p-1">
           <ChevronLeft className="h-6 w-6 text-foreground" />
         </button>
         <h1 style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.02em', color: '#19191B' }}>게시판</h1>

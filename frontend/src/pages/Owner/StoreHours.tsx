@@ -196,15 +196,15 @@ export default function StoreHours() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const storeInfo = location.state?.storeInfo;
+  const storeInfo = location.state?.storeInfo.setting;
   console.log(storeInfo);
 
   const _h = storeSettings.getHours();
-  const [openTime, setOpenTime] = useState(_h.openTime || "09:00");
-  const [closeTime, setCloseTime] = useState(_h.closeTime || "22:00");
-  const [hasHoliday, setHasHoliday] = useState(_h.hasHoliday || "없음");
-  const [holidayCycle, setHolidayCycle] = useState(_h.holidayCycle || "");
-  const [holidayDays, setHolidayDays] = useState<string[]>(_h.holidayDays || []);
+  const [openTime, setOpenTime] = useState(storeInfo.open_time || "09:00");
+  const [closeTime, setCloseTime] = useState(storeInfo.close_time || "22:00");
+  const [hasHoliday, setHasHoliday] = useState(storeInfo.is_holiday || "없음");
+  const [holidayCycle, setHolidayCycle] = useState(storeInfo.holiday_cycle || "");
+  const [holidayDays, setHolidayDays] = useState<string[]>(storeInfo.holiday_day || []);
 
   const [drawerType, setDrawerType] = useState<string | null>(null);
   const [focusedField, setFocusedField] = useState<string | null>(null);

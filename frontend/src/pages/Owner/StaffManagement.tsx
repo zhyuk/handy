@@ -186,7 +186,7 @@ export default function StaffManagement() {
         {/* Header */}
         <div className="sticky top-0 z-10" style={{ backgroundColor: '#FFFFFF' }}>
           <div className="flex items-center gap-2 px-2 pt-4 pb-2">
-            <button onClick={() => navigate("/")} className="pressable p-1">
+            <button onClick={() => navigate("/owner/home")} className="pressable p-1">
               <ChevronLeft className="h-6 w-6 text-foreground" />
             </button>
             <h1 style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.02em', color: '#19191B' }}>직원 관리</h1>
@@ -235,7 +235,7 @@ export default function StaffManagement() {
                   : isEmpty || isGhost ? 'none' : '2px 2px 12px rgba(0,0,0,0.06)';
                 return (
                   <div key={staff.id}
-                    onClick={e => { if ((e.target as HTMLElement).closest('[data-memo]')) return; navigate(`/staff/${staff.id}`); }}
+                    onClick={e => { if ((e.target as HTMLElement).closest('[data-memo]')) return; navigate(`/owner/staff/${staff.id}`); }}
                     className="bg-card rounded-2xl text-left w-full active:scale-[0.98] transition-transform cursor-pointer"
                     style={{ padding: '16px', boxShadow: cardShadow, opacity: isGhost ? 0.6 : staff.workStatus === '휴직' ? 0.75 : 1, border: cardBorder, backgroundColor: isNew ? '#F5F7FF' : isGhost ? '#F7F8FA' : undefined }}>
 

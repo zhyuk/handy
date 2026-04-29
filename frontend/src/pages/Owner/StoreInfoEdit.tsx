@@ -9,11 +9,15 @@ const BUSINESS_TYPES = ["음식점 / 카페", "편의점", "판매 / 매장", "�
 
 interface FieldDrawerProps {
   open: boolean; onOpenChange: (open: boolean) => void; title: string;
-  placeholder: string; value: string; onConfirm: (val: string) => void; inputType?: string;
+  placeholder: string;
+  value: string; onConfirm: (val: string) => void;
+  inputType?: string;
+  required?: boolean;
 }
 
-function FieldDrawer({ open, onOpenChange, title, placeholder, value, onConfirm, inputType = "text" }: FieldDrawerProps) {
+function FieldDrawer({ open, onOpenChange, title, placeholder, value, onConfirm, inputType = "text", required = true }: FieldDrawerProps) {
   const [localVal, setLocalVal] = useState(value);
+  const isValid = required ? localVal.trim() : true;
 
   if (!open) return null;
   return createPortal(
@@ -28,9 +32,9 @@ function FieldDrawer({ open, onOpenChange, title, placeholder, value, onConfirm,
             className="w-full border border-border rounded-xl px-4 py-3 text-[14px] text-foreground bg-background outline-none focus:border-primary"
             placeholder={placeholder} value={localVal} onChange={e => setLocalVal(e.target.value)} />
           <button
-            disabled={!localVal.trim()}
+            disabled={!isValid}
             onClick={() => { onConfirm(localVal); onOpenChange(false); }}
-            style={{ width: "100%", height: "56px", borderRadius: "16px", backgroundColor: localVal.trim() ? "#4261FF" : "#DBDCDF", border: "none", fontSize: "16px", fontWeight: 700, color: "#FFFFFF", cursor: localVal.trim() ? "pointer" : "default" }}>
+            style={{ width: "100%", height: "56px", borderRadius: "16px", backgroundColor: isValid ? "#4261FF" : "#DBDCDF", border: "none", fontSize: "16px", fontWeight: 700, color: "#FFFFFF", cursor: isValid ? "pointer" : "default" }}>
             입력 완료
           </button>
         </div>
@@ -84,7 +88,7 @@ export default function StoreInfoEdit() {
 
   const [storeName, setStoreName] = useState(storeInfo?.name);
   const [address, setAddress] = useState(storeInfo?.address);
-  const [addressDetail, setAddressDetail] = useState(storeInfo?.addressDetail);
+  const [addressDetail, setAddressDetail] = useState(storeInfo?.addressDetail ?? "");
   const [businessType, setBusinessType] = useState(storeInfo?.industry);
   const [ownerName, setOwnerName] = useState(storeInfo?.owner);
   const [phone, setPhone] = useState(storeInfo?.number);
@@ -164,7 +168,7 @@ export default function StoreInfoEdit() {
 
           {/* 상세 주소 */}
           <div style={{ marginBottom: '30px' }}>
-            <label className="text-[16px] font-medium" style={{ color: '#70737B', display: 'block', marginBottom: '16px' }}>상세 주소 <span style={{ color: '#FF3D3D' }}>*</span></label>
+            <label className="text-[16px] font-medium" style={{ color: '#70737B', display: 'block', marginBottom: '16px' }}>상세 주소</label>
             <button onClick={() => setDrawerType("addressDetail")}
               onMouseDown={() => setFocusedField("addressDetail")} onMouseUp={() => setFocusedField(null)} onMouseLeave={() => setFocusedField(null)}
               onTouchStart={() => setFocusedField("addressDetail")} onTouchEnd={() => setFocusedField(null)}
@@ -226,7 +230,7 @@ export default function StoreInfoEdit() {
         )}
 
         <FieldDrawer open={drawerType === "storeName"} onOpenChange={o => !o && setDrawerType(null)} title="매장명 입력하기" placeholder="매장명 입력" value={storeName} onConfirm={setStoreName} />
-        <FieldDrawer open={drawerType === "addressDetail"} onOpenChange={o => !o && setDrawerType(null)} title="상세 주소 입력하기" placeholder="상세 주소 입력" value={addressDetail} onConfirm={setAddressDetail} />
+        <FieldDrawer open={drawerType === "addressDetail"} onOpenChange={o => !o && setDrawerType(null)} title="상세 주소 입력하기" placeholder="상세 주소 입력" value={addressDetail} onConfirm={setAddressDetail} required={false} />
         <FieldDrawer open={drawerType === "ownerName"} onOpenChange={o => !o && setDrawerType(null)} title="대표자명 입력하기" placeholder="대표자명 입력" value={ownerName} onConfirm={setOwnerName} />
         <FieldDrawer open={drawerType === "phone"} onOpenChange={o => !o && setDrawerType(null)} title="대표번호 입력하기" placeholder="'-' 포함 입력" value={phone} onConfirm={setPhone} inputType="tel" />
         {confirmOpen && createPortal(

@@ -112,8 +112,8 @@ export async function getFeedback() {
 }
 
 // 알림 내역 조회
-export async function getNotification(unread_only = false) {
-    const response = await fetch(`${BASE_URL}/api/common/notification?unread_only=${unread_only}`, { credentials: 'include' });
+export async function getNotification(unread_only = false, store_id: number) {
+    const response = await fetch(`${BASE_URL}/api/common/notification?unread_only=${unread_only}&store_id=${store_id}`, { credentials: 'include' });
     if (!response.ok) throw new Error("알림 내역 조회 실패");
     return response.json();
 }

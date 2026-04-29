@@ -15,28 +15,39 @@ export interface StoreData {
   owner: string;
   number: string;
   rawDigits: string;
+  radius: number;
+  setting: StoreSetting;
+}
 
-  // 운영시간 설정 관련
+interface StoreSetting {
+  id: number;
+  store_id: number;
   open_time: string | null;
   close_time: string | null;
   is_holiday: boolean | null;
   holiday_cycle: string | null;
-  holiday_day: number | null;
-
-  // 근태 기준 설정
-  radius: number | null;
+  holiday_day: number[];
   late_minutes: number | null;
   has_overtime_pay: boolean | null;
+  overtime_minutes: number | null;
+  overtime_after_8h: number | null;
+  overtime_after_40h: number | null;
+  overtime_multiplier: number | null;
   has_night_pay: boolean | null;
+  night_minutes: number | null;
+  night_multiplier: number | null;
   has_holiday_pay: boolean | null;
+  holiday_minutes: number | null;
+  holiday_after_8h: number | null;
+  holiday_multiplier_under_8h: number | null;
+  holiday_multiplier_over_8h: number | null;
 }
 
 export default function StoreInfo() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // TODO: 사장 홈 붙인 후 초기값 제거
-  const storeId = location.state?.storeId || 1;
+  const storeId = location.state?.storeId || Number(localStorage.getItem("currentStoreId"));
   const [expanded, setExpanded] = useState(false);
   const [bannerVisible, setBannerVisible] = useState(true);
   const [hours, setHours] = useState(storeSettings.getHours());
@@ -62,8 +73,8 @@ export default function StoreInfo() {
   useEffect(() => {
     if (!storeInfo) return;
 
-    const noHours = !storeInfo.open_time || !storeInfo.close_time || storeInfo.is_holiday === null;
-    const noStandard = storeInfo.radius === null || storeInfo.late_minutes === null;
+    const noHours = !storeInfo.setting.open_time || !storeInfo.setting.close_time || storeInfo.setting.is_holiday === null;
+    const noStandard = storeInfo.radius === null || storeInfo.setting.late_minutes === null;
 
     // if (noHours) {
     //   navigate("/owner/store/hours", { state: { storeInfo } });
@@ -105,7 +116,7 @@ export default function StoreInfo() {
         {/* Header */}
         <div className="sticky top-0 z-10" style={{ backgroundColor: '#FFFFFF' }}>
           <div className="flex items-center gap-2 px-2 pt-4 pb-2">
-            <button onClick={() => navigate('/')} className="pressable p-1">
+            <button onClick={() => navigate('/owner/home')} className="pressable p-1">
               <ChevronLeft className="h-6 w-6 text-foreground" />
             </button>
             <h1 style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.02em', color: '#19191B' }}>매장 관리</h1>
@@ -188,7 +199,11 @@ export default function StoreInfo() {
               <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </button>
             <div className="border-t border-border pt-3 space-y-2.5">
-              <InfoRow label="영업 시간" value={`${hours.openTime} ~ ${hours.closeTime}`} />
+              <InfoRow label="영업 시간" value={
+                storeInfo.setting.open_time && storeInfo.setting.close_time
+                  ? `${storeInfo.setting.open_time.slice(0, 5)} ~ ${storeInfo.setting.close_time.slice(0, 5)}`
+                  : "-"
+              } />
               <InfoRow label="고정 휴무일" value={holidayValue} />
               <InfoRow label="영업 파트" value={partsValue} />
             </div>

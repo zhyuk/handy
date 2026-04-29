@@ -1,16 +1,8 @@
+import { getLink, NotificationItem } from "@/utils/function";
 import { X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-interface NoticeCard {
-  id: string;
-  type: "board" | "salary";
-  title: string;
-  description: string;
-  extraCount: number;
-}
-
 interface NoticeCardsProps {
-  notices: NoticeCard[];
+  notices: NotificationItem[];
   onDismiss: (id: string) => void;
 }
 
@@ -18,9 +10,13 @@ const NoticeCards = ({ notices, onDismiss }: NoticeCardsProps) => {
   const navigate = useNavigate();
   if (notices.length === 0) return null;
 
-  const handleClick = (notice: NoticeCard) => {
-    if (notice.type === "board") navigate(`/board/${notice.id}`);
-    else if (notice.type === "salary") navigate("/salary/pay-stub/1");
+  console.log(notices);
+
+  const handleClick = (notice: NotificationItem) => {
+    console.log(notice);
+    const link = getLink(notice.type, notice.message, notice.reference_id);
+    console.log("link:", link);
+    if (link) navigate(link);
   };
 
   return (
@@ -40,18 +36,18 @@ const NoticeCards = ({ notices, onDismiss }: NoticeCardsProps) => {
           </button>
           <div className="pr-5">
             <div className="flex items-center gap-1 mb-1">
-              {notice.type === "board" ? (
+              {notice.type === "게시판" ? (
                 <span className="text-xs">📌</span>
               ) : (
                 <span className="text-xs">📁</span>
               )}
               <span className="text-sm font-semibold text-[hsl(var(--role-badge))]">
-                {notice.title}
+                {notice.type}
               </span>
             </div>
-            <p className="text-sm font-medium text-foreground leading-snug">{notice.description}</p>
+            <p className="text-sm font-medium text-foreground leading-snug">{notice.message}</p>
           </div>
-          <span className="text-xs text-muted-foreground" style={{ textAlign: "right", paddingRight: 6 }}>+ {notice.extraCount}건</span>
+          {/* <span className="text-xs text-muted-foreground" style={{ textAlign: "right", paddingRight: 6 }}>+ {notice.extraCount}건</span> */}
         </div>
       ))}
     </div>

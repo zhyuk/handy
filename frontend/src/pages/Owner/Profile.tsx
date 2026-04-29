@@ -69,7 +69,7 @@ export default function Profile() {
       <div className="pb-24">
         {/* Header - 직원 화면과 높이/여백 통일 */}
         <div className="flex items-center gap-2 px-2 pt-4 pb-2 sticky top-0 z-10" style={{ backgroundColor: '#FFFFFF' }}>
-          <button onClick={() => navigate('/')} className="pressable p-1">
+          <button onClick={() => navigate('/owner/home')} className="pressable p-1">
             <ChevronLeft className="h-6 w-6 text-foreground" />
           </button>
           <h1 style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.02em', color: '#19191B' }}>내 정보</h1>
@@ -122,7 +122,7 @@ export default function Profile() {
                 25/26 NOL 스키 시즌
               </p>
             </div>
-            
+
             {/* 우측 하단 인디케이터 - 직원 화면과 동일한 opacity-20 및 gap-1.5 적용 */}
             <div className="absolute bottom-3 right-6 flex gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-white opacity-20"></div>

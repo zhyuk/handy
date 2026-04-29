@@ -1585,7 +1585,7 @@ export default function StaffEdit() {
   }
 
   const sectionTitle = (staff.isNew ? SECTION_TITLES_NEW : SECTION_TITLES)[section] || (staff.isNew ? "직원 정보 등록" : "직원 정보 수정");
-  const onBack = (flag?: string) => navigate(`/staff/${id}`, { state: { flag } });
+  const onBack = (flag?: string) => navigate(`/owner/staff/${id}`, { state: { flag } });
 
   // 뒤로가기 버튼 → 섹션의 handleCancel 호출
   const cancelFnRef = useRef<(() => void) | null>(null);

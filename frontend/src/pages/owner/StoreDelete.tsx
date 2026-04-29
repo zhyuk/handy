@@ -50,7 +50,7 @@ export default function StoreDelete() {
   const handleDelete = () => {
     setDeleteDialog(false);
     toast({ description: "매장이 삭제되었어요", duration: 2000 });
-    navigate("/profile/edit");
+    navigate("/owner/profile/edit");
   };
 
   return (

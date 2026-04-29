@@ -514,7 +514,7 @@ export default function AttendanceManagement() {
       time: emp.time,
       ...(emp.actualTime ? { actualTime: emp.actualTime } : {}),
     });
-    navigate(`/attendance/${emp.id}?${params.toString()}`);
+    navigate(`/owner/attendance/${emp.id}?${params.toString()}`);
   };
 
   return (
@@ -522,7 +522,7 @@ export default function AttendanceManagement() {
       <div className="pb-24">
         <div className="sticky top-0 z-10" style={{ backgroundColor: '#FFFFFF' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '16px 8px 8px' }}>
-            <button onClick={() => navigate('/')} className="pressable p-1">
+            <button onClick={() => navigate('/owner/home')} className="pressable p-1">
               <ChevronLeft className="h-6 w-6 text-foreground" />
             </button>
             <h1 style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.02em', color: '#19191B' }}>근태 관리</h1>
