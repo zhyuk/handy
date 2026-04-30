@@ -81,7 +81,7 @@ export default function ScheduleManagement() {
       {/* Header */}
       <div className="sticky top-0 z-10" style={{ backgroundColor: '#FFFFFF' }}>
         <div className="flex items-center gap-2 px-2 pt-4 pb-2">
-          <button onClick={() => navigate('/')} className="pressable p-1">
+          <button onClick={() => navigate('/owner/home')} className="pressable p-1">
             <ChevronLeft className="h-6 w-6 text-foreground" />
           </button>
           <h1 style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.02em', color: '#19191B' }}>일정 관리</h1>
