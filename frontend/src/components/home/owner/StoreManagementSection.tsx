@@ -109,7 +109,7 @@ export default function StoreManagementSection() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(10px, 2.7vw, 12px)', padding: '0 clamp(14px, 4vw, 20px)' }}>
 
       {/* 근태 관리 */}
-      <ManagementCard title="근태 관리" onClick={() => navigate("/attendance")}>
+      <ManagementCard title="근태 관리" onClick={() => navigate("/owner/attendance")}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(10px, 2.7vw, 12px)' }}>
           <div style={{ width: 'clamp(36px, 10.7vw, 40px)', height: 'clamp(36px, 10.7vw, 40px)', borderRadius: '50%', backgroundColor: '#F2F3F5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(16px, 4.8vw, 20px)', flexShrink: 0 }}>📋</div>
           <div>
@@ -125,7 +125,7 @@ export default function StoreManagementSection() {
       </ManagementCard>
 
       {/* 직원 관리 */}
-      <ManagementCard title="직원 관리" onClick={() => navigate("/staff")}>
+      <ManagementCard title="직원 관리" onClick={() => navigate("/owner/staff")}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(10px, 2.7vw, 12px)' }}>
           <div style={{ width: 'clamp(36px, 10.7vw, 40px)', height: 'clamp(36px, 10.7vw, 40px)', borderRadius: '50%', backgroundColor: '#F2F3F5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(16px, 4.8vw, 20px)', flexShrink: 0 }}>👥</div>
           <div>
@@ -143,12 +143,12 @@ export default function StoreManagementSection() {
           label="가입 승인 요청"
           value="2명"
           alert="요청 확인 필요"
-          onClick={() => navigate("/staff?tab=가입요청")}
+          onClick={() => navigate("/owner/staff?tab=가입요청")}
         />
       </ManagementCard>
 
       {/* 일정 관리 */}
-      <ManagementCard title="일정 관리" onClick={() => navigate("/schedule")}>
+      <ManagementCard title="일정 관리" onClick={() => navigate("/owner/schedule")}>
         <ManagementRow icon="🗓️" label="직원 일정 관리하기" />
         {divider}
         <ManagementRow
@@ -161,12 +161,12 @@ export default function StoreManagementSection() {
       </ManagementCard>
 
       {/* 매출 관리 */}
-      <ManagementCard title="매출 관리" onClick={() => navigate("/sales")}>
+      <ManagementCard title="매출 관리" onClick={() => navigate("/owner/sales")}>
         <ManagementRow icon="📊" label="11월 총 매출" value="3,610,000원" />
       </ManagementCard>
 
       {/* 급여 관리 */}
-      <ManagementCard title="급여 관리" onClick={() => navigate("/salary")}>
+      <ManagementCard title="급여 관리" onClick={() => navigate("/owner/salary")}>
         <ManagementRow icon="🪙" label="11월 예상 전체 직원 급여" value="2,220,000원" />
       </ManagementCard>
 
@@ -176,7 +176,7 @@ export default function StoreManagementSection() {
       </ManagementCard>
 
       {/* 매장 관리 */}
-      <ManagementCard title="매장 관리" onClick={() => navigate("/store")}>
+      <ManagementCard title="매장 관리" onClick={() => navigate("/owner/store")}>
         <ManagementRow icon="🏪" label="매장 정보 관리하기" />
       </ManagementCard>
 
