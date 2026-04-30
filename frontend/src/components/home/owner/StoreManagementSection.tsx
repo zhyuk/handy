@@ -156,7 +156,7 @@ export default function StoreManagementSection() {
           label="일정 변경 요청"
           value="2건"
           alert="요청 확인 필요"
-          onClick={() => navigate("/schedule?tab=일정변경요청")}
+          onClick={() => navigate("/owner/schedule?tab=일정변경요청")}
         />
       </ManagementCard>
 
