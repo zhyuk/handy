@@ -1,10 +1,61 @@
 import { createPortal } from "react-dom";
-import { useState } from "react";
-import { ChevronLeft, ChevronDown, Calendar as CalendarIcon, Check, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useState, useMemo, useEffect } from "react";
+import { ChevronLeft, ChevronRight, ChevronDown, Calendar as CalendarIcon, Check, X } from "lucide-react";
 import { ko } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+
+function getCalendarDays(year: number, month: number) {
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const prevDays = new Date(year, month, 0).getDate();
+  const cells: { year: number; month: number; date: number; isOutside: boolean }[] = [];
+  for (let i = firstDay - 1; i >= 0; i--) {
+    const d = new Date(year, month - 1, prevDays - i);
+    cells.push({ year: d.getFullYear(), month: d.getMonth(), date: d.getDate(), isOutside: true });
+  }
+  for (let d = 1; d <= daysInMonth; d++) cells.push({ year, month, date: d, isOutside: false });
+  const remaining = 7 - (cells.length % 7);
+  if (remaining < 7) for (let i = 1; i <= remaining; i++) {
+    const d = new Date(year, month + 1, i);
+    cells.push({ year: d.getFullYear(), month: d.getMonth(), date: d.getDate(), isOutside: true });
+  }
+  return cells;
+}
+const DAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
+
+const IconOpen = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+    <circle cx="12" cy="12" r="4" stroke="#FFB300" strokeWidth="2" />
+    <line x1="12" y1="2" x2="12" y2="5" stroke="#FFB300" strokeWidth="2" strokeLinecap="round" />
+    <line x1="12" y1="19" x2="12" y2="22" stroke="#FFB300" strokeWidth="2" strokeLinecap="round" />
+    <line x1="2" y1="12" x2="5" y2="12" stroke="#FFB300" strokeWidth="2" strokeLinecap="round" />
+    <line x1="19" y1="12" x2="22" y2="12" stroke="#FFB300" strokeWidth="2" strokeLinecap="round" />
+    <line x1="4.22" y1="4.22" x2="6.34" y2="6.34" stroke="#FFB300" strokeWidth="2" strokeLinecap="round" />
+    <line x1="17.66" y1="17.66" x2="19.78" y2="19.78" stroke="#FFB300" strokeWidth="2" strokeLinecap="round" />
+    <line x1="19.78" y1="4.22" x2="17.66" y2="6.34" stroke="#FFB300" strokeWidth="2" strokeLinecap="round" />
+    <line x1="6.34" y1="17.66" x2="4.22" y2="19.78" stroke="#FFB300" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+const IconMiddle = () => (
+  <svg width="11" height="11" viewBox="0 0 22 14" fill="none" style={{ flexShrink: 0 }}>
+    <path d="M1 13h20M11 1C6.03 1 2 5.03 2 10h18C20 5.03 15.97 1 11 1Z" stroke="#1EDC83" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <line x1="11" y1="1" x2="11" y2="0" stroke="#1EDC83" strokeWidth="2" strokeLinecap="round" />
+    <line x1="3.5" y1="3.5" x2="2.5" y2="2.5" stroke="#1EDC83" strokeWidth="2" strokeLinecap="round" />
+    <line x1="18.5" y1="3.5" x2="19.5" y2="2.5" stroke="#1EDC83" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+const IconClose = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" stroke="#14C1FA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const mockSchedule: Record<number, { open: number; middle: number; close: number }> = {};
+for (let d = 1; d <= 31; d++) mockSchedule[d] = { open: 1, middle: 1, close: 1 };
+mockSchedule[1] = { open: 2, middle: 4, close: 2 };
 
 type ShiftType = "오픈" | "미들" | "마감";
 type ChangeType = "근무 일정 변경" | "직원 간 근무 일정 교환" | "대타 근무자 지정";
@@ -43,10 +94,10 @@ const ALL_STAFF: StaffMember[] = [
   { id: "14", name: "주댕치", avatarColor: "#EF4444", shifts: ["마감"], employmentType: "정규직", startTime: "18:00", endTime: "22:00", workDays: ["토", "일"] },
 ];
 
-const SHIFT_COLORS: Record<ShiftType, string> = {
-  "오픈": "text-shift-open border-shift-open",
-  "미들": "text-shift-middle border-shift-middle",
-  "마감": "text-shift-close border-shift-close",
+const SHIFT_BADGE: Record<ShiftType, string> = {
+  "오픈": "bg-shift-open-bg text-shift-open",
+  "미들": "bg-shift-middle-bg text-shift-middle",
+  "마감": "bg-shift-close-bg text-shift-close",
 };
 
 const DAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
@@ -61,7 +112,7 @@ const CHANGE_TYPES: ChangeType[] = ["근무 일정 변경", "직원 간 근무 �
 
 function ShiftBadge({ shift }: { shift: ShiftType }) {
   return (
-    <span className={`px-2 py-0.5 rounded text-[12px] font-bold border ${SHIFT_COLORS[shift]}`}>
+    <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded ${SHIFT_BADGE[shift]}`}>
       {shift}
     </span>
   );
@@ -100,24 +151,24 @@ function getWorkDatesForMonth(staffMember: StaffMember, year: number, month: num
   return dates;
 }
 
-function ScheduleCard({ member, date, label }: { member: StaffMember; date: Date; label: string }) {
+function ScheduleCard({ member, date, label, white }: { member: StaffMember; date: Date; label: string; white?: boolean }) {
   return (
     <>
       <p className="text-[16px] font-medium" style={{ color: '#70737B', marginBottom: '16px' }}>{label}</p>
-      <div className="rounded-2xl p-4 flex items-center gap-3" style={{ backgroundColor: '#F0F7FF', marginBottom: '30px' }}>
+      <div className="rounded-2xl px-4 flex items-center gap-3" style={{ backgroundColor: '#FFFFFF', border: 'none', height: '68px', marginBottom: '30px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)' }}>
         <div
-          className="w-14 h-14 rounded-full flex items-center justify-center text-white text-[18px] font-bold flex-shrink-0"
+          className="w-[44px] h-[44px] rounded-full flex items-center justify-center text-white text-[16px] font-bold flex-shrink-0"
           style={{ backgroundColor: member.avatarColor }}
         >
           {member.name.charAt(0)}
         </div>
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[15px] font-bold text-foreground">{member.name}</span>
+            <span style={{ fontSize: '15px', fontWeight: 700, color: '#19191B' }}>{member.name}</span>
             <ShiftBadge shift={member.shifts[0]} />
-            <span className="text-[12px] text-muted-foreground">{member.employmentType}</span>
+            <span style={{ fontSize: '12px', color: '#9EA3AD' }}>{member.employmentType}</span>
           </div>
-          <p className="text-[13px] text-muted-foreground mt-0.5">
+          <p style={{ fontSize: '14px', fontWeight: 400, color: '#70737B', letterSpacing: '-0.02em', marginTop: '2px' }}>
             {formatDateFull(date)}  |  {member.startTime} - {member.endTime}
           </p>
         </div>
@@ -135,17 +186,34 @@ type StepType = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
 export default function DailyScheduleChange({ onClose }: { onClose: () => void }) {
   const [step, setStep] = useState<StepType>(1);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [calYear, setCalYear] = useState(2025);
+  const [calMonth, setCalMonth] = useState(9);
+  const calDays = useMemo(() => getCalendarDays(calYear, calMonth), [calYear, calMonth]);
+  const calWeeks = useMemo(() => { const w: typeof calDays[] = []; for (let i = 0; i < calDays.length; i += 7) w.push(calDays.slice(i, i + 7)); return w; }, [calDays]);
+  const todayDate = new Date();
+  const isToday = (y: number, m: number, d: number) => todayDate.getFullYear() === y && todayDate.getMonth() === m && todayDate.getDate() === d;
   const [selectedStaff, setSelectedStaff] = useState<string | null>(null);
   const [changeType, setChangeType] = useState<ChangeType | null>(null);
   const [showChangeTypeSheet, setShowChangeTypeSheet] = useState(false);
 
   // Step 4: work schedule change
   const [newDate, setNewDate] = useState<Date | undefined>(undefined);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [newCalYear, setNewCalYear] = useState(2025);
+  const [newCalMonth, setNewCalMonth] = useState(9);
   const [newStartTime, setNewStartTime] = useState("");
   const [newEndTime, setNewEndTime] = useState("");
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showEndPicker, setShowEndPicker] = useState(false);
+  const [activeTimePicker, setActiveTimePicker] = useState<string | null>(null); // 'start'|'end'|'editStart'|'editEnd'
   const [showConfirm, setShowConfirm] = useState(false);
+  const { toast } = useToast();
+
+  // cleanup: unmount 시 body 속성/스타일 초기화
+  useEffect(() => {
+    return () => {
+      document.body.removeAttribute('data-overlay-open');
+      document.body.style.overflow = '';
+    };
+  }, []);
 
   // Exchange flow (steps 5-7)
   const [exchangeStaffId, setExchangeStaffId] = useState<string | null>(null);
@@ -158,8 +226,7 @@ export default function DailyScheduleChange({ onClose }: { onClose: () => void }
   const [editStaff1EndTime, setEditStaff1EndTime] = useState("");
   const [editStaff2StartTime, setEditStaff2StartTime] = useState("");
   const [editStaff2EndTime, setEditStaff2EndTime] = useState("");
-  const [showEditStartPicker, setShowEditStartPicker] = useState(false);
-  const [showEditEndPicker, setShowEditEndPicker] = useState(false);
+
 
   // Substitute flow (steps 10-11)
   const [substituteStaffId, setSubstituteStaffId] = useState<string | null>(null);
@@ -173,8 +240,8 @@ export default function DailyScheduleChange({ onClose }: { onClose: () => void }
   const handleBack = () => {
     if (step === 11) setStep(10);
     else if (step === 10) { setSubstituteStaffId(null); setStep(3); }
-    else if (step === 9) { setShowEditStartPicker(false); setShowEditEndPicker(false); setStep(8); }
-    else if (step === 8) { setShowEditStartPicker(false); setShowEditEndPicker(false); setStep(7); }
+    else if (step === 9) { setStep(8); }
+    else if (step === 8) { setStep(7); }
     else if (step === 7) setStep(6);
     else if (step === 6) { setExchangeDate(undefined); setStep(5); }
     else if (step === 5) { setExchangeStaffId(null); setStep(3); }
@@ -188,11 +255,6 @@ export default function DailyScheduleChange({ onClose }: { onClose: () => void }
     if (step === 1 && selectedDate) setStep(2);
     else if (step === 2 && selectedStaff) setStep(3);
     else if (step === 3 && changeType === "근무 일정 변경") {
-      if (staff && selectedDate) {
-        setNewDate(selectedDate);
-        setNewStartTime(parseInt(staff.startTime) < 12 ? `오전 ${staff.startTime}` : `오후 ${staff.startTime}`);
-        setNewEndTime(parseInt(staff.endTime) < 12 ? `오전 ${staff.endTime}` : `오후 ${staff.endTime}`);
-      }
       setStep(4);
     } else if (step === 3 && changeType === "직원 간 근무 일정 교환") {
       setStep(5);
@@ -209,16 +271,19 @@ export default function DailyScheduleChange({ onClose }: { onClose: () => void }
 
   const handleConfirm = () => {
     setShowConfirm(false);
+    toast({ description: "일정이 변경되었어요", duration: 2000 });
     onClose();
   };
 
   const handleExchangeConfirm = () => {
     setShowExchangeConfirm(false);
+    toast({ description: "일정이 교환되었어요", duration: 2000 });
     onClose();
   };
 
   const handleSubstituteConfirm = () => {
     setShowSubstituteConfirm(false);
+    toast({ description: "대타 근무자가 등록되었어요", duration: 2000 });
     onClose();
   };
 
@@ -296,60 +361,88 @@ export default function DailyScheduleChange({ onClose }: { onClose: () => void }
         setEditStaff2StartTime(parseInt(staff.startTime) < 12 ? `오전 ${staff.startTime}` : `오후 ${staff.startTime}`);
         setEditStaff2EndTime(parseInt(staff.endTime) < 12 ? `오전 ${staff.endTime}` : `오후 ${staff.endTime}`);
       }
-      setShowEditStartPicker(false);
-      setShowEditEndPicker(false);
-      setStep(9);
+            setStep(9);
     } else {
       handleNext();
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[200] bg-background flex flex-col max-w-lg mx-auto">
+    <div className="fixed inset-0 z-[200] flex flex-col max-w-lg mx-auto" style={{ backgroundColor: '#FFFFFF' }}>
       {/* Header */}
-      <div className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button onClick={handleBack}>
-          <ChevronLeft className="w-6 h-6 text-foreground" />
+      <div className="flex items-center gap-2 px-2 pt-4 pb-2">
+        <button onClick={handleBack} className="pressable p-1">
+          <ChevronLeft style={{ width: '24px', height: '24px', color: '#19191B' }} />
         </button>
-        <h1 className="text-[18px] font-bold text-foreground">직원 일정 변경</h1>
+        <h1 style={{ fontSize: '20px', fontWeight: 700, color: '#19191B', letterSpacing: '-0.02em' }}>{(step >= 4 && changeType) ? changeType : '직원 일정 변경'}</h1>
       </div>
 
       {/* Step 1: Select date */}
       {step === 1 && (
         <div className="flex-1 overflow-auto scrollbar-hide px-5">
-          <h2 className="text-[22px] font-bold text-foreground leading-tight mt-4 mb-6">
-            변경할 근무 일정의<br />날짜를 선택해 주세요
+          <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#19191B', letterSpacing: '-0.02em', lineHeight: '1.4', marginTop: '16px', marginBottom: '24px' }}>
+            변경할 근무 날짜를<br />선택해주세요
           </h2>
-          <Calendar
-            mode="single"
-            selected={selectedDate}
-            onSelect={setSelectedDate}
-            defaultMonth={new Date(2025, 9)}
-            locale={ko}
-            formatters={{ formatCaption: (date) => `${date.getFullYear()}년 ${date.getMonth() + 1}월` }}
-            className={cn("w-full p-0 pointer-events-auto")}
-            classNames={calendarClassNames}
-            components={{
-              IconLeft: () => <ChevronLeft className="h-5 w-5" />,
-              IconRight: () => (
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m9 18 6-6-6-6" />
-                </svg>
-              ),
-            }}
-          />
+          <div>
+            <div className="flex items-center justify-between px-1 py-3">
+              <button onClick={() => { const d = new Date(calYear, calMonth - 1, 1); setCalYear(d.getFullYear()); setCalMonth(d.getMonth()); }} className="pressable p-1"><ChevronLeft className="h-5 w-5 text-foreground" /></button>
+              <span style={{ fontSize: '17px', fontWeight: 700, color: '#19191B' }}>{calYear}년 {calMonth + 1}월</span>
+              <button onClick={() => { const d = new Date(calYear, calMonth + 1, 1); setCalYear(d.getFullYear()); setCalMonth(d.getMonth()); }} className="pressable p-1"><ChevronRight className="h-5 w-5 text-foreground" /></button>
+            </div>
+            <div className="grid grid-cols-7">
+              {DAY_LABELS.map((day, i) => (
+                <div key={day} className="text-center pb-3" style={{ fontSize: '14px', fontWeight: 500, letterSpacing: '-0.02em', color: i === 0 ? '#FF5959' : i === 6 ? '#5DB1FF' : '#70737B' }}>{day}</div>
+              ))}
+            </div>
+            <div>
+              {calWeeks.map((week, wi) => (
+                <div key={wi} className="grid grid-cols-7 mb-1">
+                  {week.map((d, di) => {
+                    const isTodayDate = !d.isOutside && isToday(d.year, d.month, d.date);
+                    const isSelected = !d.isOutside && selectedDate && selectedDate.getFullYear() === d.year && selectedDate.getMonth() === d.month && selectedDate.getDate() === d.date;
+                    const isSun = di === 0; const isSat = di === 6;
+                    const dateColor = d.isOutside ? '#AAB4BF' : isSelected ? '#FFFFFF' : isTodayDate ? '#FFFFFF' : isSun ? '#FF5959' : isSat ? '#5DB1FF' : '#19191B';
+                    const schedule = !d.isOutside ? mockSchedule[d.date] : null;
+                    return (
+                      <button key={di} onClick={() => { if (!d.isOutside) setSelectedDate(new Date(d.year, d.month, d.date)); }} className="pressable flex flex-col items-center py-1.5 w-full" style={{ minHeight: '90px', borderRadius: '8px' }} disabled={d.isOutside}>
+                        <div style={{ height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '4px' }}>
+                          <span style={{ fontSize: '14px', fontWeight: 500, letterSpacing: '-0.02em', color: dateColor, ...(isSelected ? { backgroundColor: '#4261FF', borderRadius: '10px', minWidth: '40px', width: '40px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 } : isTodayDate ? { backgroundColor: '#4261FF', borderRadius: '10px', minWidth: '40px', width: '40px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 } : {}) }}>
+                            {d.date}
+                          </span>
+                        </div>
+                        {schedule && !d.isOutside && (
+                          <div className="flex flex-col w-full px-0.5" style={{ gap: '2px' }}>
+                            {[
+                              { icon: <IconOpen />, count: schedule.open, bg: '#FDF9DF', text: '#FFB300' },
+                              { icon: <IconMiddle />, count: schedule.middle, bg: '#ECFFF1', text: '#1EDC83' },
+                              { icon: <IconClose />, count: schedule.close, bg: '#E8F9FF', text: '#14C1FA' },
+                            ].map(({ icon, count, bg, text }, idx) => (
+                              <div key={idx} style={{ backgroundColor: bg, borderRadius: '4px', padding: '0 4px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                                <span style={{ display: 'flex', alignItems: 'center' }}>{icon}</span>
+                                <span style={{ fontSize: '11px', fontWeight: 600, color: text, lineHeight: 1 }}>{count}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
       {/* Step 2: Select staff */}
       {step === 2 && selectedDate && (
         <div className="flex-1 overflow-auto scrollbar-hide px-5">
-          <h2 className="text-[22px] font-bold text-foreground leading-tight mt-4 mb-8">
-            선택한 날짜에서 일정을<br />변경할 직원을 선택해 주세요
+          <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#19191B', letterSpacing: '-0.02em', lineHeight: '1.4', marginTop: '16px', marginBottom: '32px' }}>
+            선택한 날짜에서 일정을<br />변경할 직원을 선택해주세요
           </h2>
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[13px] text-muted-foreground">근무직원</span>
-            <span className="text-[13px] text-muted-foreground">총 {staffList.length}명</span>
+            <span style={{ fontSize: '16px', fontWeight: 500, letterSpacing: '-0.02em', color: '#93989E' }}>근무직원</span>
+            <span style={{ fontSize: '16px', fontWeight: 400, letterSpacing: '-0.02em', color: '#93989E' }}>총 {staffList.length}명</span>
           </div>
           <div className="flex flex-col">
             {staffList.map((s) => {
@@ -358,18 +451,18 @@ export default function DailyScheduleChange({ onClose }: { onClose: () => void }
                 <button
                   key={s.id}
                   onClick={() => setSelectedStaff(isSelected ? null : s.id)}
-                  className={`flex items-center gap-3 py-3 px-3 -mx-3 rounded-xl transition-colors ${isSelected ? "bg-primary/5" : ""}`}
+                  className="flex items-center gap-3 py-3 px-3 -mx-3 rounded-xl" style={isSelected ? { backgroundColor: 'rgba(66,97,255,0.05)' } : {}}
                 >
-                  <div className="w-14 h-14 rounded-full flex items-center justify-center text-white text-[18px] font-bold flex-shrink-0" style={{ backgroundColor: s.avatarColor }}>
+                  <div className="w-[44px] h-[44px] rounded-full flex items-center justify-center text-white text-[16px] font-bold flex-shrink-0" style={{ backgroundColor: s.avatarColor }}>
                     {s.name.charAt(0)}
                   </div>
                   <div className="text-left">
                     <div className="flex items-center gap-2">
-                      <span className="text-[15px] font-bold text-foreground">{s.name}</span>
+                      <span style={{ fontSize: '15px', fontWeight: 700, color: '#19191B' }}>{s.name}</span>
                       <ShiftBadge shift={s.shifts[0]} />
-                      <span className="text-[12px] text-muted-foreground border border-border rounded px-1.5 py-0.5">{s.employmentType}</span>
+                      <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded" style={{ backgroundColor: '#F0F0F0', color: '#70737B' }}>{s.employmentType}</span>
                     </div>
-                    <p className="text-[13px] text-muted-foreground mt-0.5">{s.startTime} - {s.endTime}</p>
+                    <p style={{ fontSize: '14px', fontWeight: 400, color: '#70737B', letterSpacing: '-0.02em', marginTop: '2px' }}>{s.startTime} - {s.endTime}</p>
                   </div>
                 </button>
               );
@@ -381,20 +474,20 @@ export default function DailyScheduleChange({ onClose }: { onClose: () => void }
       {/* Step 3: Select change type */}
       {step === 3 && staff && selectedDate && (
         <div className="flex-1 overflow-auto scrollbar-hide px-5">
-          <h2 className="text-[22px] font-bold text-foreground leading-tight mt-4 mb-8">
-            선택한 직원의<br />일정 변경 유형을 선택해 주세요
+          <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#19191B', letterSpacing: '-0.02em', lineHeight: '1.4', marginTop: '16px', marginBottom: '32px' }}>
+            선택한 직원의<br />근무 일정을 변경해주세요
           </h2>
           <ScheduleCard member={staff} date={selectedDate} label="선택한 일정" />
           <p className="text-[16px] font-medium" style={{ color: '#70737B', marginBottom: '16px' }}>일정 변경 유형 <span style={{ color: '#FF3D3D' }}>*</span>
           </p>
           <button
             onClick={() => setShowChangeTypeSheet(true)}
-            className="w-full flex items-center justify-between bg-background" style={{ height: '52px', padding: '0 16px', border: '1px solid #DBDCDF', borderRadius: '10px', marginBottom: '4px' }}
+            className="w-full flex items-center justify-between" style={{ height: '52px', padding: '0 16px', border: '1px solid #DBDCDF', borderRadius: '10px', marginBottom: '4px' }}
           >
-            <span className={`text-[15px] ${changeType ? "text-foreground" : "text-muted-foreground"}`}>
+            <span style={{ fontSize: '15px', color: changeType ? '#19191B' : '#9EA3AD' }}>
               {changeType || "변경 유형 선택"}
             </span>
-            <ChevronDown className="w-5 h-5 text-muted-foreground" />
+            <ChevronDown style={{ width: '20px', height: '20px', color: '#9EA3AD' }} />
           </button>
           <p className="text-[14px]" style={{ color: '#AAB4BF', marginTop: '4px', marginBottom: '30px' }}>*일정 변경 시 기존 일정은 새 일정으로 자동 대체돼요</p>
         </div>
@@ -403,59 +496,44 @@ export default function DailyScheduleChange({ onClose }: { onClose: () => void }
       {/* Step 4: Work schedule change form */}
       {step === 4 && staff && selectedDate && (
         <div className="flex-1 overflow-auto scrollbar-hide px-5">
-          <h2 className="text-[22px] font-bold text-foreground leading-tight mt-4 mb-8">
-            선택한 직원의<br />일정 변경 유형을 선택해 주세요
+          <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#19191B', letterSpacing: '-0.02em', lineHeight: '1.4', marginTop: '16px', marginBottom: '32px' }}>
+            선택한 직원의<br />근무 일정을 변경해주세요
           </h2>
           <ScheduleCard member={staff} date={selectedDate} label="선택한 일정" />
-          <p className="text-[16px] font-medium" style={{ color: '#70737B', marginBottom: '16px' }}>근무일 변경</p>
-          <Popover>
-            <PopoverTrigger asChild>
-              <button className="w-full flex items-center justify-between bg-background" style={{ height: '52px', padding: '0 16px', border: '1px solid #DBDCDF', borderRadius: '10px', marginBottom: '30px' }}>
-                <span className={`text-[15px] ${newDate ? "text-foreground" : "text-muted-foreground"}`}>
-                  {newDate ? formatDateShort(newDate) : "날짜 선택"}
-                </span>
-                <CalendarIcon className="w-5 h-5 text-muted-foreground" />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single" selected={newDate} onSelect={setNewDate} defaultMonth={new Date(2025, 9)} locale={ko}
-                formatters={{ formatCaption: (date) => `${date.getFullYear()}년 ${date.getMonth() + 1}월` }}
-                className={cn("p-3 pointer-events-auto")} classNames={calendarClassNames}
-                components={{
-                  IconLeft: () => <ChevronLeft className="h-5 w-5" />,
-                  IconRight: () => <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>,
-                }}
-              />
-            </PopoverContent>
-          </Popover>
+          <p className="text-[16px] font-medium" style={{ color: '#70737B', marginBottom: '8px' }}>근무일 변경</p>
+          <button
+            onClick={() => setShowDatePicker(true)}
+            className="w-full flex items-center justify-between"
+            style={{ height: '52px', padding: '0 16px', border: '1px solid #DBDCDF', borderRadius: '10px', marginBottom: '30px', backgroundColor: '#FFFFFF' }}
+          >
+            <span style={{ fontSize: '15px', color: newDate ? '#19191B' : '#9EA3AD' }}>
+              {newDate ? formatDateShort(newDate) : '날짜 선택'}
+            </span>
+            <CalendarIcon className="w-5 h-5" style={{ color: '#9EA3AD' }} />
+          </button>
           <p className="text-[16px] font-medium" style={{ color: '#70737B', marginBottom: '16px' }}>출근 시간 변경</p>
-          <div className="relative" style={{ marginBottom: '30px' }}>
-            <button onClick={() => { setShowStartPicker(!showStartPicker); setShowEndPicker(false); }} className="w-full flex items-center justify-between bg-background" style={{ height: '52px', padding: '0 16px', border: '1px solid #DBDCDF', borderRadius: '10px' }}>
-              <span className={`text-[15px] ${newStartTime ? "text-foreground" : "text-muted-foreground"}`}>{newStartTime || "출근 시간 선택"}</span>
-              <ChevronDown className="w-5 h-5 text-muted-foreground" />
+          <div style={{ marginBottom: '30px' }}>
+            <button onClick={() => setActiveTimePicker('start')} className="w-full flex items-center justify-between" style={{ height: '52px', padding: '0 16px', border: '1px solid #DBDCDF', borderRadius: '10px' }}>
+              <span style={{ fontSize: '15px', color: newStartTime ? '#19191B' : '#9EA3AD' }}>{newStartTime || "출근 시간 선택"}</span>
+              <ChevronDown style={{ width: '20px', height: '20px', color: '#9EA3AD' }} />
             </button>
-            {showStartPicker && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-2xl shadow-lg max-h-48 overflow-auto z-10 scrollbar-hide">
-                {TIME_OPTIONS.map((t) => (
-                  <button key={t} onClick={() => { setNewStartTime(t); setShowStartPicker(false); }} className="w-full text-left px-4 py-3 text-[14px] text-foreground hover:bg-secondary">{t}</button>
-                ))}
-              </div>
-            )}
           </div>
           <p className="text-[16px] font-medium" style={{ color: '#70737B', marginBottom: '16px' }}>퇴근 시간 변경</p>
-          <div className="relative" style={{ marginBottom: '30px' }}>
-            <button onClick={() => { setShowEndPicker(!showEndPicker); setShowStartPicker(false); }} className="w-full flex items-center justify-between bg-background" style={{ height: '52px', padding: '0 16px', border: '1px solid #DBDCDF', borderRadius: '10px' }}>
-              <span className={`text-[15px] ${newEndTime ? "text-foreground" : "text-muted-foreground"}`}>{newEndTime || "퇴근 시간 선택"}</span>
-              <ChevronDown className="w-5 h-5 text-muted-foreground" />
+          <div style={{ marginBottom: '30px' }}>
+            <button onClick={() => setActiveTimePicker('end')} className="w-full flex items-center justify-between" style={{ height: '52px', padding: '0 16px', border: '1px solid #DBDCDF', borderRadius: '10px' }}>
+              <span style={{ fontSize: '15px', color: newEndTime ? '#19191B' : '#9EA3AD' }}>{newEndTime || "퇴근 시간 선택"}</span>
+              <ChevronDown style={{ width: '20px', height: '20px', color: '#9EA3AD' }} />
             </button>
-            {showEndPicker && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-2xl shadow-lg max-h-48 overflow-auto z-10 scrollbar-hide">
-                {TIME_OPTIONS.map((t) => (
-                  <button key={t} onClick={() => { setNewEndTime(t); setShowEndPicker(false); }} className="w-full text-left px-4 py-3 text-[14px] text-foreground hover:bg-secondary">{t}</button>
-                ))}
-              </div>
-            )}
+            {newStartTime && newEndTime && (() => {
+              const toMin = (t: string) => { const clean = t.replace('오전 ', '').replace('오후 ', ''); const [h, m] = clean.split(':').map(Number); return h * 60 + (m || 0); };
+              const startMin = toMin(newStartTime);
+              const endMin = toMin(newEndTime);
+              const diff = endMin - startMin;
+              if (diff <= 0) return null;
+              const h = Math.floor(diff / 60); const m = diff % 60;
+              const label = [h > 0 ? `${h}시간` : '', m > 0 ? `${m}분` : ''].filter(Boolean).join(' ');
+              return <p className="text-[14px]" style={{ color: '#AAB4BF', marginTop: '6px' }}>총 {label} 근무</p>;
+            })()}
           </div>
         </div>
       )}
@@ -463,12 +541,12 @@ export default function DailyScheduleChange({ onClose }: { onClose: () => void }
       {/* Step 5: Select exchange staff */}
       {step === 5 && staff && selectedDate && (
         <div className="flex-1 overflow-auto scrollbar-hide px-5">
-          <h2 className="text-[22px] font-bold text-foreground leading-tight mt-4 mb-8">
-            일정을 교환할<br />직원을 선택해 주세요
+          <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#19191B', letterSpacing: '-0.02em', lineHeight: '1.4', marginTop: '16px', marginBottom: '32px' }}>
+            일정을 교환할<br />직원을 선택해주세요
           </h2>
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[13px] text-muted-foreground">근무직원</span>
-            <span className="text-[13px] text-muted-foreground">총 {exchangeStaffList.length}명</span>
+            <span style={{ fontSize: '16px', fontWeight: 500, letterSpacing: '-0.02em', color: '#93989E' }}>근무직원</span>
+            <span style={{ fontSize: '16px', fontWeight: 400, letterSpacing: '-0.02em', color: '#93989E' }}>총 {exchangeStaffList.length}명</span>
           </div>
           <div className="flex flex-col">
             {exchangeStaffList.map((s) => {
@@ -477,20 +555,20 @@ export default function DailyScheduleChange({ onClose }: { onClose: () => void }
                 <button
                   key={s.id}
                   onClick={() => setExchangeStaffId(isSelected ? null : s.id)}
-                  className={`flex items-center gap-3 py-3 px-3 -mx-3 rounded-xl transition-colors ${isSelected ? "bg-primary/5" : ""}`}
+                  className="flex items-center gap-3 py-3 px-3 -mx-3 rounded-xl" style={isSelected ? { backgroundColor: 'rgba(66,97,255,0.05)' } : {}}
                 >
-                  <div className="w-14 h-14 rounded-full flex items-center justify-center text-white text-[18px] font-bold flex-shrink-0" style={{ backgroundColor: s.avatarColor }}>
+                  <div className="w-[44px] h-[44px] rounded-full flex items-center justify-center text-white text-[16px] font-bold flex-shrink-0" style={{ backgroundColor: s.avatarColor }}>
                     {s.name.charAt(0)}
                   </div>
                   <div className="text-left">
                     <div className="flex items-center gap-2">
-                      <span className="text-[15px] font-bold text-foreground">{s.name}</span>
+                      <span style={{ fontSize: '15px', fontWeight: 700, color: '#19191B' }}>{s.name}</span>
                       {s.shifts.map((shift) => (
                         <ShiftBadge key={shift} shift={shift} />
                       ))}
-                      <span className="text-[12px] text-muted-foreground border border-border rounded px-1.5 py-0.5">{s.employmentType}</span>
+                      <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded" style={{ backgroundColor: '#F0F0F0', color: '#70737B' }}>{s.employmentType}</span>
                     </div>
-                    <p className="text-[13px] text-muted-foreground mt-0.5">
+                    <p style={{ fontSize: '14px', fontWeight: 400, color: '#70737B', letterSpacing: '-0.02em', marginTop: '2px' }}>
                       {s.workDays?.join(", ")}
                     </p>
                   </div>
@@ -504,90 +582,69 @@ export default function DailyScheduleChange({ onClose }: { onClose: () => void }
       {/* Step 6: Select exchange date from staff's calendar */}
       {step === 6 && exchangeStaff && staff && selectedDate && (
         <div className="flex-1 overflow-auto scrollbar-hide px-5">
-          <h2 className="text-[22px] font-bold text-foreground leading-tight mt-4 mb-6">
-            {exchangeStaff.name} 님의 일정에서<br />교환할 날짜를 선택해 주세요
+          <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#19191B', letterSpacing: '-0.02em', lineHeight: '1.4', marginTop: '16px', marginBottom: '24px' }}>
+            {exchangeStaff.name} 님의 일정에서<br />교환할 날짜를 선택해주세요
           </h2>
-
-          {/* Custom calendar with work schedule indicators */}
-          <div className="w-full">
-            {/* Calendar header */}
-            <div className="flex items-center justify-between py-3 mb-2">
-              <button onClick={() => setExchangeCalendarMonth(new Date(exchangeCalendarMonth.getFullYear(), exchangeCalendarMonth.getMonth() - 1))}>
-                <ChevronLeft className="h-5 w-5 text-foreground" />
-              </button>
-              <span className="text-[17px] font-bold text-foreground">
-                {exchangeCalendarMonth.getFullYear()}년 {exchangeCalendarMonth.getMonth() + 1}월 ▾
-              </span>
-              <button onClick={() => setExchangeCalendarMonth(new Date(exchangeCalendarMonth.getFullYear(), exchangeCalendarMonth.getMonth() + 1))}>
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m9 18 6-6-6-6" />
-                </svg>
-              </button>
+          <div>
+            <div className="flex items-center justify-between px-1 py-3">
+              <button onClick={() => setExchangeCalendarMonth(new Date(exchangeCalendarMonth.getFullYear(), exchangeCalendarMonth.getMonth() - 1))} className="pressable p-1"><ChevronLeft className="h-5 w-5 text-foreground" /></button>
+              <span style={{ fontSize: '17px', fontWeight: 700, color: '#19191B' }}>{exchangeCalendarMonth.getFullYear()}년 {exchangeCalendarMonth.getMonth() + 1}월</span>
+              <button onClick={() => setExchangeCalendarMonth(new Date(exchangeCalendarMonth.getFullYear(), exchangeCalendarMonth.getMonth() + 1))} className="pressable p-1"><ChevronRight className="h-5 w-5 text-foreground" /></button>
             </div>
-
-            {/* Day headers */}
-            <div className="grid grid-cols-7 mb-1">
-              {DAY_NAMES.map((day, i) => (
-                <div key={day} className={`text-center text-[13px] font-medium py-2 ${i === 0 ? "text-destructive" : i === 6 ? "text-primary" : "text-muted-foreground"}`}>
-                  {day}
-                </div>
+            <div className="grid grid-cols-7">
+              {DAY_LABELS.map((day, i) => (
+                <div key={day} className="text-center pb-3" style={{ fontSize: '14px', fontWeight: 500, letterSpacing: '-0.02em', color: i === 0 ? '#FF5959' : i === 6 ? '#5DB1FF' : '#70737B' }}>{day}</div>
               ))}
             </div>
-
-            {/* Calendar grid */}
-            {(() => {
-              const year = exchangeCalendarMonth.getFullYear();
-              const month = exchangeCalendarMonth.getMonth();
-              const firstDay = new Date(year, month, 1).getDay();
-              const daysInMonth = new Date(year, month + 1, 0).getDate();
-              const workDates = exchangeWorkDates;
-              const isWorkDate = (d: number) => workDates.some((wd) => wd.getDate() === d);
-              const isSelectedDate = (d: number) => exchangeDate && exchangeDate.getDate() === d && exchangeDate.getMonth() === month && exchangeDate.getFullYear() === year;
-              const today = new Date();
-              const isToday = (d: number) => today.getDate() === d && today.getMonth() === month && today.getFullYear() === year;
-
-              const rows: number[][] = [];
-              let row: number[] = [];
-              for (let i = 0; i < firstDay; i++) row.push(0);
-              for (let d = 1; d <= daysInMonth; d++) {
-                row.push(d);
-                if (row.length === 7) { rows.push(row); row = []; }
-              }
-              if (row.length > 0) { while (row.length < 7) row.push(0); rows.push(row); }
-
-              return rows.map((r, ri) => (
-                <div key={ri} className="grid grid-cols-7">
-                  {r.map((d, ci) => {
-                    if (d === 0) return <div key={ci} className="min-h-[68px]" />;
-                    const work = isWorkDate(d);
-                    const selected = isSelectedDate(d);
-                    const dayColor = ci === 0 ? "text-destructive" : ci === 6 ? "text-primary" : "text-foreground";
-
-                    return (
-                      <button
-                        key={ci}
-                        onClick={() => {
-                          if (work) setExchangeDate(new Date(year, month, d));
-                        }}
-                        className={`min-h-[68px] flex flex-col items-center pt-1.5 rounded-lg transition-colors ${selected ? "bg-primary/10" : ""}`}
-                      >
-                        <span className={`text-[15px] w-8 h-8 flex items-center justify-center rounded-full ${
-                          isToday(d) ? "bg-primary text-primary-foreground font-bold" :
-                          selected ? "text-primary font-bold" : dayColor
-                        }`}>
-                          {d}
-                        </span>
-                        {work && (
-                          <div className={`text-[10px] mt-0.5 leading-tight text-center ${selected ? "text-primary font-bold" : "text-destructive"}`}>
-                            {exchangeStaff.startTime}<br/>-<br/>{exchangeStaff.endTime}
+            <div>
+              {(() => {
+                const exYear = exchangeCalendarMonth.getFullYear();
+                const exMonth = exchangeCalendarMonth.getMonth();
+                const exDays = getCalendarDays(exYear, exMonth);
+                const exWeeks: typeof exDays[] = [];
+                for (let i = 0; i < exDays.length; i += 7) exWeeks.push(exDays.slice(i, i + 7));
+                const workDates = exchangeWorkDates;
+                return exWeeks.map((week, wi) => (
+                  <div key={wi} className="grid grid-cols-7 mb-1">
+                    {week.map((d, di) => {
+                      const dateObj = new Date(d.year, d.month, d.date);
+                      const isWork = !d.isOutside && workDates.some(wd => wd.toDateString() === dateObj.toDateString());
+                      const isTodayDate = !d.isOutside && isToday(d.year, d.month, d.date);
+                      const isSelected = !d.isOutside && exchangeDate && exchangeDate.toDateString() === dateObj.toDateString();
+                      const isSun = di === 0; const isSat = di === 6;
+                      const dateColor = d.isOutside ? '#AAB4BF' : isSelected ? '#FFFFFF' : isTodayDate ? '#FFFFFF' : isSun ? '#FF5959' : isSat ? '#5DB1FF' : '#19191B';
+                      const schedule = isWork ? { startTime: exchangeStaff.startTime, endTime: exchangeStaff.endTime, shift: exchangeStaff.shifts[0] } : null;
+                      const shiftStyle: Record<string, { bg: string; color: string }> = {
+                        '오픈': { bg: '#FDF9DF', color: '#FFB300' },
+                        '미들': { bg: '#ECFFF1', color: '#1EDC83' },
+                        '마감': { bg: '#E8F9FF', color: '#14C1FA' },
+                      };
+                      return (
+                        <button key={di} onClick={() => { if (isWork) setExchangeDate(dateObj); }} className="pressable flex flex-col items-center py-1 w-full" style={{ minHeight: '72px' }} disabled={d.isOutside || !isWork}>
+                          <div style={{ height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span style={{ fontSize: '14px', fontWeight: 500, letterSpacing: '-0.02em', color: dateColor, ...(isSelected ? { backgroundColor: '#4261FF', borderRadius: '10px', minWidth: '36px', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' } : isTodayDate ? { backgroundColor: '#4261FF', borderRadius: '10px', minWidth: '36px', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5 } : {}) }}>
+                              {d.date}
+                            </span>
                           </div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              ));
-            })()}
+                          {schedule && (() => {
+                            const st = shiftStyle[schedule.shift ?? '오픈'] ?? { bg: '#EEF1FF', color: '#4261FF' };
+                            const bg = isSelected ? '#E8F3FF' : st.bg;
+                            const col = isSelected ? '#7488FE' : st.color;
+                            return (
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', backgroundColor: bg, borderRadius: '4px', padding: '2px 0' }}>
+                                <span style={{ fontSize: '11px', fontWeight: 500, color: col, lineHeight: '1.3' }}>{schedule.startTime}</span>
+                                <span style={{ fontSize: '9px', color: col, lineHeight: '1' }}>-</span>
+                                <span style={{ fontSize: '11px', fontWeight: 500, color: col, lineHeight: '1.3' }}>{schedule.endTime}</span>
+                              </div>
+                            );
+                          })()}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ));
+              })()}
+            </div>
           </div>
         </div>
       )}
@@ -595,21 +652,15 @@ export default function DailyScheduleChange({ onClose }: { onClose: () => void }
       {/* Step 7: Exchange summary */}
       {step === 7 && staff && selectedDate && exchangeStaff && exchangeDate && (
         <div className="flex-1 overflow-auto scrollbar-hide px-5">
-          <h2 className="text-[22px] font-bold text-foreground leading-tight mt-4 mb-2">
-            해당 일정의 대타 근무자가<br />있다면 선택해 주세요
+          <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#19191B', letterSpacing: '-0.02em', lineHeight: '1.4', marginTop: '16px', marginBottom: '32px' }}>
+            교환할 근무 일정을<br />확인해주세요
           </h2>
-          <p className="text-[14px] text-muted-foreground mb-8">
-            필요한 경우 근무 시간을 수정할 수 있어요
-          </p>
 
-          <ScheduleCard member={staff} date={selectedDate} label="선택한 일정" />
+          <ScheduleCard member={staff} date={selectedDate} label="선택한 일정" white />
           
-          <p className="text-[13px] text-muted-foreground mb-2">교환할 일정</p>
-          <div className="rounded-2xl p-4 flex items-center gap-3" style={{ backgroundColor: '#F0F7FF', marginBottom: '30px' }}>
-            <div
-              className="w-14 h-14 rounded-full flex items-center justify-center text-white text-[18px] font-bold flex-shrink-0"
-              style={{ backgroundColor: exchangeStaff.avatarColor }}
-            >
+          <p style={{ fontSize: '16px', fontWeight: 500, letterSpacing: '-0.02em', color: '#93989E', marginBottom: '10px' }}>교환할 일정</p>
+          <div className="rounded-2xl px-4 flex items-center gap-3" style={{ backgroundColor: '#FFFFFF', height: '68px', marginBottom: '20px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)' }}>
+            <div className="w-[44px] h-[44px] rounded-full flex items-center justify-center text-white text-[16px] font-bold flex-shrink-0" style={{ backgroundColor: exchangeStaff.avatarColor }}>
               {exchangeStaff.name.charAt(0)}
             </div>
             <div>
@@ -618,8 +669,41 @@ export default function DailyScheduleChange({ onClose }: { onClose: () => void }
                 <ShiftBadge shift={exchangeStaff.shifts[0]} />
                 <span className="text-[12px] text-muted-foreground">{exchangeStaff.employmentType}</span>
               </div>
-              <p className="text-[13px] text-muted-foreground mt-0.5">
+              <p style={{ fontSize: '14px', fontWeight: 400, color: '#70737B', letterSpacing: '-0.02em', marginTop: '2px' }}>
                 {formatDateFull(exchangeDate)}  |  {exchangeStaff.startTime} - {exchangeStaff.endTime}
+              </p>
+            </div>
+          </div>
+
+          {/* 변경될 일정 */}
+          <p style={{ fontSize: '16px', fontWeight: 500, letterSpacing: '-0.02em', color: '#4261FF', marginBottom: '10px' }}>*변경될 일정</p>
+          <div className="rounded-2xl px-4 flex items-center gap-3" style={{ backgroundColor: '#F0F7FF', height: '68px', marginBottom: '10px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)' }}>
+            <div className="w-[44px] h-[44px] rounded-full flex items-center justify-center text-white text-[16px] font-bold flex-shrink-0" style={{ backgroundColor: staff.avatarColor }}>
+              {staff.name.charAt(0)}
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span style={{ fontSize: '15px', fontWeight: 700, color: '#19191B' }}>{staff.name}</span>
+                <ShiftBadge shift={exchangeStaff.shifts[0]} />
+                <span style={{ fontSize: '12px', color: '#9EA3AD' }}>{staff.employmentType}</span>
+              </div>
+              <p style={{ fontSize: '14px', fontWeight: 400, color: '#70737B', letterSpacing: '-0.02em' }}>
+                {formatDateFull(exchangeDate)}  |  {exchangeStaff.startTime} - {exchangeStaff.endTime}
+              </p>
+            </div>
+          </div>
+          <div className="rounded-2xl px-4 flex items-center gap-3" style={{ backgroundColor: '#F0F7FF', height: '68px', marginBottom: '30px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)' }}>
+            <div className="w-[44px] h-[44px] rounded-full flex items-center justify-center text-white text-[16px] font-bold flex-shrink-0" style={{ backgroundColor: exchangeStaff.avatarColor }}>
+              {exchangeStaff.name.charAt(0)}
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span style={{ fontSize: '15px', fontWeight: 700, color: '#19191B' }}>{exchangeStaff.name}</span>
+                <ShiftBadge shift={staff.shifts[0]} />
+                <span style={{ fontSize: '12px', color: '#9EA3AD' }}>{exchangeStaff.employmentType}</span>
+              </div>
+              <p style={{ fontSize: '14px', fontWeight: 400, color: '#70737B', letterSpacing: '-0.02em' }}>
+                {formatDateFull(selectedDate)}  |  {staff.startTime} - {staff.endTime}
               </p>
             </div>
           </div>
@@ -629,12 +713,12 @@ export default function DailyScheduleChange({ onClose }: { onClose: () => void }
       {/* Step 10: Select substitute staff */}
       {step === 10 && staff && selectedDate && (
         <div className="flex-1 overflow-auto scrollbar-hide px-5">
-          <h2 className="text-[22px] font-bold text-foreground leading-tight mt-4 mb-8">
-            {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일({DAY_NAMES[selectedDate.getDay()]}) {staff.startTime}-{staff.endTime}<br />대타 근무자를 선택해 주세요
+          <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#19191B', letterSpacing: '-0.02em', lineHeight: '1.4', marginTop: '16px', marginBottom: '32px' }}>
+            {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일({DAY_NAMES[selectedDate.getDay()]}) {staff.startTime}-{staff.endTime}<br />대타 근무자를 선택해주세요
           </h2>
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[13px] text-muted-foreground">근무직원</span>
-            <span className="text-[13px] text-muted-foreground">총 {substituteStaffList.length}명</span>
+            <span style={{ fontSize: '16px', fontWeight: 500, letterSpacing: '-0.02em', color: '#93989E' }}>근무직원</span>
+            <span style={{ fontSize: '16px', fontWeight: 400, letterSpacing: '-0.02em', color: '#93989E' }}>총 {substituteStaffList.length}명</span>
           </div>
           <div className="flex flex-col">
             {substituteStaffList.map((s) => {
@@ -643,18 +727,18 @@ export default function DailyScheduleChange({ onClose }: { onClose: () => void }
                 <button
                   key={s.id}
                   onClick={() => setSubstituteStaffId(isSelected ? null : s.id)}
-                  className={`flex items-center gap-3 py-3 px-3 -mx-3 rounded-xl transition-colors ${isSelected ? "bg-primary/5" : ""}`}
+                  className="flex items-center gap-3 py-3 px-3 -mx-3 rounded-xl" style={isSelected ? { backgroundColor: 'rgba(66,97,255,0.05)' } : {}}
                 >
-                  <div className="w-14 h-14 rounded-full flex items-center justify-center text-white text-[18px] font-bold flex-shrink-0" style={{ backgroundColor: s.avatarColor }}>
+                  <div className="w-[44px] h-[44px] rounded-full flex items-center justify-center text-white text-[16px] font-bold flex-shrink-0" style={{ backgroundColor: s.avatarColor }}>
                     {s.name.charAt(0)}
                   </div>
                   <div className="text-left">
                     <div className="flex items-center gap-2">
-                      <span className="text-[15px] font-bold text-foreground">{s.name}</span>
+                      <span style={{ fontSize: '15px', fontWeight: 700, color: '#19191B' }}>{s.name}</span>
                       {s.shifts.map((shift) => <ShiftBadge key={shift} shift={shift} />)}
-                      <span className="text-[12px] text-muted-foreground border border-border rounded px-1.5 py-0.5">{s.employmentType}</span>
+                      <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded" style={{ backgroundColor: '#F0F0F0', color: '#70737B' }}>{s.employmentType}</span>
                     </div>
-                    <p className="text-[13px] text-muted-foreground mt-0.5">{s.workDays?.join(", ")}</p>
+                    <p style={{ fontSize: '14px', fontWeight: 400, color: '#70737B', letterSpacing: '-0.02em', marginTop: '2px' }}>{s.workDays?.join(", ")}</p>
                   </div>
                 </button>
               );
@@ -666,30 +750,30 @@ export default function DailyScheduleChange({ onClose }: { onClose: () => void }
       {/* Step 11: Substitute confirmation summary */}
       {step === 11 && staff && selectedDate && substituteStaff && (
         <div className="flex-1 overflow-auto scrollbar-hide px-5">
-          <h2 className="text-[22px] font-bold text-foreground leading-tight mt-4 mb-8">
+          <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#19191B', letterSpacing: '-0.02em', lineHeight: '1.4', marginTop: '16px', marginBottom: '32px' }}>
             아래와 같이<br />일정을 변경할까요?
           </h2>
 
           <ScheduleCard member={staff} date={selectedDate} label="선택한 일정" />
 
-          <p className="text-[13px] text-muted-foreground mb-2">대타 근무자</p>
-          <div className="bg-card border border-border rounded-2xl p-4 flex items-center gap-3 mb-6">
-            <div className="w-14 h-14 rounded-full flex items-center justify-center text-white text-[18px] font-bold flex-shrink-0" style={{ backgroundColor: substituteStaff.avatarColor }}>
+          <p style={{ fontSize: '16px', fontWeight: 500, letterSpacing: '-0.02em', color: '#93989E', marginBottom: '10px' }}>대타 근무자</p>
+          <div className="rounded-2xl px-4 flex items-center gap-3" style={{ backgroundColor: '#FFFFFF', height: '68px', marginBottom: '24px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)' }}>
+            <div className="w-[44px] h-[44px] rounded-full flex items-center justify-center text-white text-[16px] font-bold flex-shrink-0" style={{ backgroundColor: substituteStaff.avatarColor }}>
               {substituteStaff.name.charAt(0)}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[15px] font-bold text-foreground">{substituteStaff.name}</span>
+                <span style={{ fontSize: '15px', fontWeight: 700, color: '#19191B' }}>{substituteStaff.name}</span>
                 <ShiftBadge shift={substituteStaff.shifts[0]} />
-                <span className="text-[12px] text-muted-foreground">{substituteStaff.employmentType}</span>
+                <span style={{ fontSize: '12px', color: '#9EA3AD' }}>{substituteStaff.employmentType}</span>
               </div>
-              <p className="text-[13px] text-muted-foreground mt-0.5">{substituteStaff.workDays?.join(", ")}</p>
+              <p style={{ fontSize: '14px', fontWeight: 400, color: '#70737B', letterSpacing: '-0.02em', marginTop: '2px' }}>{substituteStaff.workDays?.join(", ")}</p>
             </div>
           </div>
 
-          <p className="text-[13px] text-primary font-bold mb-2">*변경될 일정</p>
-          <div className="rounded-2xl p-4 flex items-center gap-3" style={{ backgroundColor: '#F0F7FF', marginBottom: '30px' }}>
-            <div className="w-14 h-14 rounded-full flex items-center justify-center text-white text-[18px] font-bold flex-shrink-0" style={{ backgroundColor: substituteStaff.avatarColor }}>
+          <p style={{ fontSize: '16px', fontWeight: 500, letterSpacing: '-0.02em', color: '#4261FF', marginBottom: '10px' }}>*변경될 일정</p>
+          <div className="rounded-2xl px-4 flex items-center gap-3" style={{ backgroundColor: '#F0F7FF', height: '68px', marginBottom: '30px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)' }}>
+            <div className="w-[44px] h-[44px] rounded-full flex items-center justify-center text-white text-[16px] font-bold flex-shrink-0" style={{ backgroundColor: substituteStaff.avatarColor }}>
               {substituteStaff.name.charAt(0)}
             </div>
             <div>
@@ -698,7 +782,7 @@ export default function DailyScheduleChange({ onClose }: { onClose: () => void }
                 <ShiftBadge shift={substituteStaff.shifts[0]} />
                 <span className="text-[12px] text-muted-foreground">{substituteStaff.employmentType}</span>
               </div>
-              <p className="text-[13px] text-muted-foreground mt-0.5">
+              <p style={{ fontSize: '14px', fontWeight: 400, color: '#70737B', letterSpacing: '-0.02em', marginTop: '2px' }}>
                 {formatDateFull(selectedDate)}  |  {staff.startTime} - {staff.endTime}
               </p>
             </div>
@@ -709,19 +793,19 @@ export default function DailyScheduleChange({ onClose }: { onClose: () => void }
 
       {step === 8 && staff && selectedDate && exchangeStaff && exchangeDate && (
         <div className="flex-1 overflow-auto scrollbar-hide px-5">
-          <h2 className="text-[22px] font-bold text-foreground leading-tight mt-4 mb-8">
-            {staff.name} 님의 근무<br />일정을 확인해 주세요
+          <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#19191B', letterSpacing: '-0.02em', lineHeight: '1.4', marginTop: '16px', marginBottom: '32px' }}>
+            {staff.name} 님의 근무<br />일정을 확인해주세요
           </h2>
           <p className="text-[13px] text-primary font-bold mb-2">*교환된 일정</p>
-          <div className="rounded-2xl p-4 flex items-center gap-3" style={{ backgroundColor: '#F0F7FF', marginBottom: '30px' }}>
-            <div className="w-14 h-14 rounded-full flex items-center justify-center text-white text-[18px] font-bold flex-shrink-0" style={{ backgroundColor: staff.avatarColor }}>
+          <div className="rounded-2xl px-4 flex items-center gap-3" style={{ backgroundColor: '#F0F7FF', height: '68px', marginBottom: '30px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)' }}>
+            <div className="w-[44px] h-[44px] rounded-full flex items-center justify-center text-white text-[16px] font-bold flex-shrink-0" style={{ backgroundColor: staff.avatarColor }}>
               {staff.name.charAt(0)}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[15px] font-bold text-foreground">{staff.name}</span>
+                <span style={{ fontSize: '15px', fontWeight: 700, color: '#19191B' }}>{staff.name}</span>
                 <ShiftBadge shift={staff.shifts[0]} />
-                <span className="text-[12px] text-muted-foreground">{staff.employmentType}</span>
+                <span style={{ fontSize: '12px', color: '#9EA3AD' }}>{staff.employmentType}</span>
               </div>
               <p className="text-[13px] text-primary mt-0.5">
                 {formatDateFull(exchangeDate)}  |  {exchangeStaff.startTime} - {exchangeStaff.endTime}
@@ -729,37 +813,23 @@ export default function DailyScheduleChange({ onClose }: { onClose: () => void }
             </div>
           </div>
           <p className="text-[16px] font-medium" style={{ color: '#70737B', marginBottom: '16px' }}>근무일 변경</p>
-          <div className="w-full flex items-center justify-between border border-border rounded-2xl px-4 py-4 mb-6 bg-muted/30 cursor-not-allowed">
+          <div className="w-full flex items-center justify-between rounded-2xl px-4 py-4 cursor-not-allowed" style={{ border: '1px solid #EAECEF', backgroundColor: '#F7F7F8', marginBottom: '24px' }}>
             <span className="text-[15px] text-muted-foreground">{formatDateShort(exchangeDate)}</span>
             <CalendarIcon className="w-5 h-5 text-muted-foreground/50" />
           </div>
           <p className="text-[16px] font-medium" style={{ color: '#70737B', marginBottom: '16px' }}>출근 시간 변경</p>
-          <div className="relative" style={{ marginBottom: '30px' }}>
-            <button onClick={() => { setShowEditStartPicker(!showEditStartPicker); setShowEditEndPicker(false); }} className="w-full flex items-center justify-between bg-background" style={{ height: '52px', padding: '0 16px', border: '1px solid #DBDCDF', borderRadius: '10px' }}>
+          <div style={{ marginBottom: '30px' }}>
+            <button onClick={() => setActiveTimePicker('editStart')} className="w-full flex items-center justify-between" style={{ height: '52px', padding: '0 16px', border: '1px solid #DBDCDF', borderRadius: '10px' }}>
               <span className="text-[15px] text-foreground">{editStaff1StartTime}</span>
-              <ChevronDown className="w-5 h-5 text-muted-foreground" />
+              <ChevronDown style={{ width: '20px', height: '20px', color: '#9EA3AD' }} />
             </button>
-            {showEditStartPicker && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-2xl shadow-lg max-h-48 overflow-auto z-10 scrollbar-hide">
-                {TIME_OPTIONS.map((t) => (
-                  <button key={t} onClick={() => { setEditStaff1StartTime(t); setShowEditStartPicker(false); }} className="w-full text-left px-4 py-3 text-[14px] text-foreground hover:bg-secondary">{t}</button>
-                ))}
-              </div>
-            )}
           </div>
           <p className="text-[16px] font-medium" style={{ color: '#70737B', marginBottom: '16px' }}>퇴근 시간 변경</p>
-          <div className="relative" style={{ marginBottom: '30px' }}>
-            <button onClick={() => { setShowEditEndPicker(!showEditEndPicker); setShowEditStartPicker(false); }} className="w-full flex items-center justify-between bg-background" style={{ height: '52px', padding: '0 16px', border: '1px solid #DBDCDF', borderRadius: '10px' }}>
+          <div style={{ marginBottom: '30px' }}>
+            <button onClick={() => setActiveTimePicker('editEnd')} className="w-full flex items-center justify-between" style={{ height: '52px', padding: '0 16px', border: '1px solid #DBDCDF', borderRadius: '10px' }}>
               <span className="text-[15px] text-foreground">{editStaff1EndTime}</span>
-              <ChevronDown className="w-5 h-5 text-muted-foreground" />
+              <ChevronDown style={{ width: '20px', height: '20px', color: '#9EA3AD' }} />
             </button>
-            {showEditEndPicker && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-2xl shadow-lg max-h-48 overflow-auto z-10 scrollbar-hide">
-                {TIME_OPTIONS.map((t) => (
-                  <button key={t} onClick={() => { setEditStaff1EndTime(t); setShowEditEndPicker(false); }} className="w-full text-left px-4 py-3 text-[14px] text-foreground hover:bg-secondary">{t}</button>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -767,12 +837,12 @@ export default function DailyScheduleChange({ onClose }: { onClose: () => void }
       {/* Step 9: Edit staff2 exchanged schedule */}
       {step === 9 && staff && selectedDate && exchangeStaff && exchangeDate && (
         <div className="flex-1 overflow-auto scrollbar-hide px-5">
-          <h2 className="text-[22px] font-bold text-foreground leading-tight mt-4 mb-8">
-            {exchangeStaff.name} 님의 근무<br />일정을 확인해 주세요
+          <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#19191B', letterSpacing: '-0.02em', lineHeight: '1.4', marginTop: '16px', marginBottom: '32px' }}>
+            {exchangeStaff.name} 님의 근무<br />일정을 확인해주세요
           </h2>
           <p className="text-[13px] text-primary font-bold mb-2">*교환된 일정</p>
-          <div className="rounded-2xl p-4 flex items-center gap-3" style={{ backgroundColor: '#F0F7FF', marginBottom: '30px' }}>
-            <div className="w-14 h-14 rounded-full flex items-center justify-center text-white text-[18px] font-bold flex-shrink-0" style={{ backgroundColor: exchangeStaff.avatarColor }}>
+          <div className="rounded-2xl px-4 flex items-center gap-3" style={{ backgroundColor: '#F0F7FF', height: '68px', marginBottom: '30px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)' }}>
+            <div className="w-[44px] h-[44px] rounded-full flex items-center justify-center text-white text-[16px] font-bold flex-shrink-0" style={{ backgroundColor: exchangeStaff.avatarColor }}>
               {exchangeStaff.name.charAt(0)}
             </div>
             <div>
@@ -787,67 +857,39 @@ export default function DailyScheduleChange({ onClose }: { onClose: () => void }
             </div>
           </div>
           <p className="text-[16px] font-medium" style={{ color: '#70737B', marginBottom: '16px' }}>근무일 변경</p>
-          <div className="w-full flex items-center justify-between border border-border rounded-2xl px-4 py-4 mb-6 bg-muted/30 cursor-not-allowed">
+          <div className="w-full flex items-center justify-between rounded-2xl px-4 py-4 cursor-not-allowed" style={{ border: '1px solid #EAECEF', backgroundColor: '#F7F7F8', marginBottom: '24px' }}>
             <span className="text-[15px] text-muted-foreground">{formatDateShort(selectedDate)}</span>
             <CalendarIcon className="w-5 h-5 text-muted-foreground/50" />
           </div>
           <p className="text-[16px] font-medium" style={{ color: '#70737B', marginBottom: '16px' }}>출근 시간 변경</p>
-          <div className="relative" style={{ marginBottom: '30px' }}>
-            <button onClick={() => { setShowEditStartPicker(!showEditStartPicker); setShowEditEndPicker(false); }} className="w-full flex items-center justify-between bg-background" style={{ height: '52px', padding: '0 16px', border: '1px solid #DBDCDF', borderRadius: '10px' }}>
+          <div style={{ marginBottom: '30px' }}>
+            <button onClick={() => setActiveTimePicker('editStart2')} className="w-full flex items-center justify-between" style={{ height: '52px', padding: '0 16px', border: '1px solid #DBDCDF', borderRadius: '10px' }}>
               <span className="text-[15px] text-foreground">{editStaff2StartTime}</span>
-              <ChevronDown className="w-5 h-5 text-muted-foreground" />
+              <ChevronDown style={{ width: '20px', height: '20px', color: '#9EA3AD' }} />
             </button>
-            {showEditStartPicker && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-2xl shadow-lg max-h-48 overflow-auto z-10 scrollbar-hide">
-                {TIME_OPTIONS.map((t) => (
-                  <button key={t} onClick={() => { setEditStaff2StartTime(t); setShowEditStartPicker(false); }} className="w-full text-left px-4 py-3 text-[14px] text-foreground hover:bg-secondary">{t}</button>
-                ))}
-              </div>
-            )}
           </div>
           <p className="text-[16px] font-medium" style={{ color: '#70737B', marginBottom: '16px' }}>퇴근 시간 변경</p>
-          <div className="relative" style={{ marginBottom: '30px' }}>
-            <button onClick={() => { setShowEditEndPicker(!showEditEndPicker); setShowEditStartPicker(false); }} className="w-full flex items-center justify-between bg-background" style={{ height: '52px', padding: '0 16px', border: '1px solid #DBDCDF', borderRadius: '10px' }}>
+          <div style={{ marginBottom: '30px' }}>
+            <button onClick={() => setActiveTimePicker('editEnd2')} className="w-full flex items-center justify-between" style={{ height: '52px', padding: '0 16px', border: '1px solid #DBDCDF', borderRadius: '10px' }}>
               <span className="text-[15px] text-foreground">{editStaff2EndTime}</span>
-              <ChevronDown className="w-5 h-5 text-muted-foreground" />
+              <ChevronDown style={{ width: '20px', height: '20px', color: '#9EA3AD' }} />
             </button>
-            {showEditEndPicker && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-2xl shadow-lg max-h-48 overflow-auto z-10 scrollbar-hide">
-                {TIME_OPTIONS.map((t) => (
-                  <button key={t} onClick={() => { setEditStaff2EndTime(t); setShowEditEndPicker(false); }} className="w-full text-left px-4 py-3 text-[14px] text-foreground hover:bg-secondary">{t}</button>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       )}
 
       {/* Bottom buttons */}
       {step === 7 ? (
-        <div className="px-5 pb-8 pt-4 flex gap-3">
-          <button
-            onClick={() => {
-              if (exchangeStaff && exchangeDate) {
-                setEditStaff1StartTime(parseInt(exchangeStaff.startTime) < 12 ? `오전 ${exchangeStaff.startTime}` : `오후 ${exchangeStaff.startTime}`);
-                setEditStaff1EndTime(parseInt(exchangeStaff.endTime) < 12 ? `오전 ${exchangeStaff.endTime}` : `오후 ${exchangeStaff.endTime}`);
-              }
-              setShowEditStartPicker(false);
-              setShowEditEndPicker(false);
-              setStep(8);
-            }}
-            className="flex-1 py-4 rounded-2xl text-[16px] font-bold border border-border text-foreground bg-background"
-          >
-            수정하기
-          </button>
+        <div style={{ padding: '16px 20px 32px' }}>
           <button
             onClick={() => setShowExchangeConfirm(true)}
-            className="flex-1 py-4 rounded-2xl text-[16px] font-bold bg-primary text-primary-foreground"
+            style={{ width: '100%', height: '56px', borderRadius: '16px', fontSize: '16px', fontWeight: 700, border: 'none', color: '#FFFFFF', backgroundColor: '#4261FF', cursor: 'pointer' }}
           >
             교환하기
           </button>
         </div>
       ) : step === 8 ? (
-        <div className="px-5 pb-8 pt-4">
+        <div style={{ padding: '16px 20px 32px' }}>
           <button
             onClick={handleBottomButton}
             className="w-full py-4 rounded-2xl text-[16px] font-bold bg-primary text-primary-foreground"
@@ -858,8 +900,8 @@ export default function DailyScheduleChange({ onClose }: { onClose: () => void }
       ) : step === 9 ? (
         <div className="px-5 pb-8 pt-4 flex gap-3">
           <button
-            onClick={() => { setShowEditStartPicker(false); setShowEditEndPicker(false); setStep(8); }}
-            className="flex-1 py-4 rounded-2xl text-[16px] font-bold border border-border text-foreground bg-background"
+            onClick={() => { setStep(8); }}
+            style={{ flex: 1, height: '56px', borderRadius: '16px', fontSize: '16px', fontWeight: 700, border: '1px solid #DBDCDF', color: '#19191B', backgroundColor: '#FFFFFF', cursor: 'pointer' }}
           >
             이전
           </button>
@@ -871,28 +913,20 @@ export default function DailyScheduleChange({ onClose }: { onClose: () => void }
           </button>
         </div>
       ) : step === 11 ? (
-        <div className="px-5 pb-8 pt-4 flex gap-3">
-          <button
-            onClick={() => setStep(10)}
-            className="flex-1 py-4 rounded-2xl text-[16px] font-bold border border-border text-foreground bg-background"
-          >
-            이전
-          </button>
+        <div style={{ padding: '16px 20px 32px' }}>
           <button
             onClick={() => setShowSubstituteConfirm(true)}
-            className="flex-1 py-4 rounded-2xl text-[16px] font-bold bg-primary text-primary-foreground"
+            style={{ width: '100%', height: '56px', borderRadius: '16px', fontSize: '16px', fontWeight: 700, border: 'none', cursor: 'pointer', backgroundColor: '#4261FF', color: '#FFFFFF' }}
           >
-            등록하기
+            변경하기
           </button>
         </div>
       ) : (
-        <div className="px-5 pb-8 pt-4">
+        <div style={{ padding: '16px 20px 32px' }}>
           <button
             onClick={handleBottomButton}
             disabled={!isCurrentStepValid()}
-            className={`w-full py-4 rounded-2xl text-[16px] font-bold transition-colors ${
-              isCurrentStepValid() ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-            }`}
+            style={{ width: '100%', height: '56px', borderRadius: '16px', fontSize: '16px', fontWeight: 700, border: 'none', cursor: 'pointer', backgroundColor: isCurrentStepValid() ? '#4261FF' : '#EAECEF', color: isCurrentStepValid() ? '#FFFFFF' : '#9EA3AD' }}
           >
             {getButtonLabel()}
           </button>
@@ -900,35 +934,167 @@ export default function DailyScheduleChange({ onClose }: { onClose: () => void }
       )}
 
       {/* Change type bottom sheet */}
-      {showChangeTypeSheet && (
-        <div className="fixed inset-0 z-[55] flex items-end justify-center bg-black/50" onClick={() => setShowChangeTypeSheet(false)}>
-          <div className="bg-card rounded-t-2xl w-full max-w-lg pb-8" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 pt-5 pb-4">
-              <h3 className="text-[17px] font-bold text-foreground">일정 변경 유형 선택</h3>
-              <button onClick={() => setShowChangeTypeSheet(false)}>
-                <X className="w-5 h-5 text-foreground" />
+      {showDatePicker && createPortal(
+        <div className="fixed inset-0 z-[200] flex flex-col max-w-lg mx-auto" style={{ backgroundColor: '#FFFFFF' }}>
+          <div className="flex items-center gap-2 px-2 pt-4 pb-2">
+            <button onClick={() => setShowDatePicker(false)} className="pressable p-1">
+              <ChevronLeft style={{ width: '24px', height: '24px', color: '#19191B' }} />
+            </button>
+            <h1 style={{ fontSize: '20px', fontWeight: 700, color: '#19191B', letterSpacing: '-0.02em' }}>직원 일정 변경</h1>
+          </div>
+          <div className="flex-1 overflow-auto scrollbar-hide px-5">
+            <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#19191B', letterSpacing: '-0.02em', lineHeight: '1.4', marginTop: '16px', marginBottom: '24px' }}>
+              {staff?.name} 님의 일정에서<br />변경할 날짜를 선택해주세요
+            </h2>
+            <div className="flex items-center justify-between px-1 py-3">
+              <button onClick={() => { const d = new Date(newCalYear, newCalMonth - 1, 1); setNewCalYear(d.getFullYear()); setNewCalMonth(d.getMonth()); }} className="pressable p-1"><ChevronLeft className="h-5 w-5 text-foreground" /></button>
+              <span style={{ fontSize: '17px', fontWeight: 700, color: '#19191B' }}>{newCalYear}년 {newCalMonth + 1}월</span>
+              <button onClick={() => { const d = new Date(newCalYear, newCalMonth + 1, 1); setNewCalYear(d.getFullYear()); setNewCalMonth(d.getMonth()); }} className="pressable p-1"><ChevronRight className="h-5 w-5 text-foreground" /></button>
+            </div>
+            <div className="grid grid-cols-7">
+              {DAY_LABELS.map((day, i) => (
+                <div key={day} className="text-center pb-3" style={{ fontSize: '14px', fontWeight: 500, letterSpacing: '-0.02em', color: i === 0 ? '#FF5959' : i === 6 ? '#5DB1FF' : '#70737B' }}>{day}</div>
+              ))}
+            </div>
+            <div>
+              {(() => {
+                const days = getCalendarDays(newCalYear, newCalMonth);
+                const weeks: typeof days[] = [];
+                for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
+                return weeks.map((week, wi) => (
+                  <div key={wi} className="grid grid-cols-7 mb-1">
+                    {week.map((d, di) => {
+                      const dateObj = new Date(d.year, d.month, d.date);
+                      const isTodayDate = !d.isOutside && isToday(d.year, d.month, d.date);
+                      const isSelected = !d.isOutside && newDate && newDate.toDateString() === dateObj.toDateString();
+                      const isSun = di === 0; const isSat = di === 6;
+                      const dateColor = d.isOutside ? '#AAB4BF' : isSelected ? '#FFFFFF' : isTodayDate ? '#FFFFFF' : isSun ? '#FF5959' : isSat ? '#5DB1FF' : '#19191B';
+                      const shiftStyle: Record<string, { bg: string; color: string }> = {
+                        '오픈': { bg: '#FDF9DF', color: '#FFB300' },
+                        '미들': { bg: '#ECFFF1', color: '#1EDC83' },
+                        '마감': { bg: '#E8F9FF', color: '#14C1FA' },
+                      };
+                      return (
+                        <button key={di} onClick={() => { if (!d.isOutside) setNewDate(dateObj); }} className="pressable flex flex-col items-center py-1 w-full" style={{ minHeight: '72px' }} disabled={d.isOutside}>
+                          <div style={{ height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span style={{ fontSize: '14px', fontWeight: 500, letterSpacing: '-0.02em', color: dateColor, ...(isSelected ? { backgroundColor: '#4261FF', borderRadius: '10px', minWidth: '36px', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' } : isTodayDate ? { backgroundColor: '#4261FF', borderRadius: '10px', minWidth: '36px', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5 } : {}) }}>
+                              {d.date}
+                            </span>
+                          </div>
+                          {!d.isOutside && staff && (() => {
+                            const st = shiftStyle[staff.shifts[0] ?? '오픈'] ?? { bg: '#ECFFF1', color: '#1EDC83' };
+                            const bg = isSelected ? '#E8F3FF' : st.bg;
+                            const col = isSelected ? '#7488FE' : st.color;
+                            return (
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', backgroundColor: bg, borderRadius: '4px', padding: '2px 0' }}>
+                                <span style={{ fontSize: '11px', fontWeight: 500, color: col, lineHeight: '1.3' }}>{staff.startTime}</span>
+                                <span style={{ fontSize: '9px', color: col, lineHeight: '1' }}>-</span>
+                                <span style={{ fontSize: '11px', fontWeight: 500, color: col, lineHeight: '1.3' }}>{staff.endTime}</span>
+                              </div>
+                            );
+                          })()}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ));
+              })()}
+            </div>
+          </div>
+          <div style={{ padding: '16px 20px 32px' }}>
+            <button
+              onClick={() => setShowDatePicker(false)}
+              disabled={!newDate}
+              style={{ width: '100%', height: '56px', borderRadius: '16px', fontSize: '16px', fontWeight: 700, border: 'none', cursor: newDate ? 'pointer' : 'default', backgroundColor: newDate ? '#4261FF' : '#EAECEF', color: newDate ? '#FFFFFF' : '#9EA3AD' }}
+            >
+              다음
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {activeTimePicker && createPortal(
+        <div className="fixed inset-0 z-[300] flex items-end justify-center bg-black/50" onClick={() => setActiveTimePicker(null)}>
+          <div className="w-full max-w-lg rounded-t-3xl bg-white shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 pt-5 pb-3">
+              <h3 style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '-0.02em', color: '#19191B' }}>
+                {activeTimePicker.includes('Start') || activeTimePicker === 'start' ? '출근 시간 선택' : '퇴근 시간 선택'}
+              </h3>
+              <button onClick={() => setActiveTimePicker(null)} className="pressable p-1">
+                <X style={{ width: '20px', height: '20px', color: '#19191B' }} strokeWidth={2.5} />
               </button>
             </div>
-            <div className="flex flex-col">
+            <div className="overflow-y-auto scrollbar-hide" style={{ maxHeight: '320px', paddingBottom: '8px' }}>
+              {TIME_OPTIONS.map((t) => {
+                const toMin = (s: string) => { const c = s.replace('오전 ', '').replace('오후 ', ''); const [h, m] = c.split(':').map(Number); return h * 60 + (m || 0); };
+                const isEndPicker = activeTimePicker === 'end' || activeTimePicker === 'editEnd' || activeTimePicker === 'editEnd2';
+                const refStartTime =
+                  activeTimePicker === 'end' ? newStartTime :
+                  activeTimePicker === 'editEnd' ? editStaff1StartTime :
+                  activeTimePicker === 'editEnd2' ? editStaff2StartTime : '';
+                if (isEndPicker && refStartTime && toMin(t) <= toMin(refStartTime)) return null;
+                const currentVal =
+                  activeTimePicker === 'start' ? newStartTime :
+                  activeTimePicker === 'end' ? newEndTime :
+                  activeTimePicker === 'editStart' ? editStaff1StartTime :
+                  activeTimePicker === 'editEnd' ? editStaff1EndTime :
+                  activeTimePicker === 'editStart2' ? editStaff2StartTime :
+                  editStaff2EndTime;
+                const isSelected = currentVal === t;
+                return (
+                  <button key={t} className="pressable w-full flex items-center justify-between px-5 py-4"
+                    style={{ backgroundColor: isSelected ? '#F0F4FF' : '#FFFFFF' }}
+                    onClick={() => {
+                      if (activeTimePicker === 'start') setNewStartTime(t);
+                      else if (activeTimePicker === 'end') setNewEndTime(t);
+                      else if (activeTimePicker === 'editStart') setEditStaff1StartTime(t);
+                      else if (activeTimePicker === 'editEnd') setEditStaff1EndTime(t);
+                      else if (activeTimePicker === 'editStart2') setEditStaff2StartTime(t);
+                      else setEditStaff2EndTime(t);
+                      setActiveTimePicker(null);
+                    }}>
+                    <span style={{ fontSize: '15px', fontWeight: isSelected ? 600 : 400, color: isSelected ? '#4261FF' : '#19191B', letterSpacing: '-0.02em' }}>{t}</span>
+                    {isSelected && <Check className="w-5 h-5" style={{ color: '#4261FF' }} />}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ height: '32px' }} />
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {showChangeTypeSheet && createPortal(
+        <div className="fixed inset-0 z-[300] flex items-end justify-center bg-black/50" onClick={() => setShowChangeTypeSheet(false)}>
+          <div className="w-full max-w-lg rounded-t-3xl bg-white shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 pt-5 pb-3">
+              <h3 style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '-0.02em', color: '#19191B' }}>일정 변경 유형 선택</h3>
+              <button onClick={() => setShowChangeTypeSheet(false)} className="pressable p-1">
+                <X style={{ width: '20px', height: '20px', color: '#19191B' }} strokeWidth={2.5} />
+              </button>
+            </div>
+            <div className="flex flex-col py-2">
               {CHANGE_TYPES.map((type) => {
                 const isSelected = changeType === type;
                 return (
                   <button
                     key={type}
                     onClick={() => { setChangeType(type); setShowChangeTypeSheet(false); }}
-                    className={`flex items-center justify-between px-5 py-4 text-[15px] transition-colors ${isSelected ? "bg-primary/10 text-primary font-bold" : "text-foreground"}`}
+                    className="pressable w-full flex items-center justify-between px-5 py-4"
+                    style={{ backgroundColor: isSelected ? '#F0F4FF' : '#FFFFFF' }}
                   >
-                    <span>{type}</span>
-                    {isSelected && <Check className="w-5 h-5 text-primary" />}
+                    <span style={{ fontSize: '15px', fontWeight: isSelected ? 600 : 400, color: isSelected ? '#4261FF' : '#19191B', letterSpacing: '-0.02em' }}>{type}</span>
+                    {isSelected && <Check className="w-5 h-5" style={{ color: '#4261FF' }} />}
                   </button>
                 );
               })}
             </div>
-            <div className="flex justify-center pt-4">
-              <div className="w-[134px] h-[5px] bg-foreground rounded-full" />
-            </div>
+            <div style={{ height: '32px' }} />
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Work schedule change confirmation popup */}
@@ -939,10 +1105,10 @@ export default function DailyScheduleChange({ onClose }: { onClose: () => void }
             <p style={{ fontSize: '14px', fontWeight: 400, letterSpacing: '-0.02em', color: '#70737B', textAlign: 'center', marginBottom: '12px', lineHeight: '1.5' }}>
               아래와 같이 근무 일정을 변경하시겠어요?<br />변경 일정은 해당 직원에게도 안내돼요
             </p>
-            <div className="text-left text-[13px] space-y-1.5 mx-5 mb-5 p-3 rounded-xl" style={{ backgroundColor: '#F7F8FA' }}>
-              <div className="flex"><span className="text-muted-foreground w-20">직원</span><span className="font-bold text-foreground">{staff.name}</span></div>
-              <div className="flex"><span className="text-muted-foreground w-20">선택한 일정</span><span className="text-foreground">{formatDateConfirm(selectedDate)} | {staff.startTime}-{staff.endTime}</span></div>
-              <div className="flex"><span className="text-muted-foreground w-20">변경한 일정</span><span className="text-primary font-bold">{formatDateConfirm(newDate)} | {newStartTime.replace("오전 ", "").replace("오후 ", "")}-{newEndTime.replace("오전 ", "").replace("오후 ", "")}</span></div>
+            <div className="text-left text-[13px] space-y-1.5 w-full mb-5 p-3 rounded-xl" style={{ backgroundColor: '#F7F8FA' }}>
+              <div className="flex"><span style={{ color: '#9EA3AD', minWidth: '80px', flexShrink: 0 }}>직원</span><span className="font-bold text-foreground" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{staff.name}</span></div>
+              <div className="flex"><span style={{ color: '#9EA3AD', minWidth: '80px', flexShrink: 0 }}>선택한 일정</span><span className="text-foreground" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{formatDateConfirm(selectedDate)} | {staff.startTime}-{staff.endTime}</span></div>
+              <div className="flex"><span style={{ color: '#9EA3AD', minWidth: '80px', flexShrink: 0 }}>변경한 일정</span><span className="text-primary font-bold" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{formatDateConfirm(newDate)} | {newStartTime.replace("오전 ", "").replace("오후 ", "")}-{newEndTime.replace("오전 ", "").replace("오후 ", "")}</span></div>
             </div>
             <div className="flex" style={{ gap: '8px', width: '100%' }}>
               <button onClick={() => setShowConfirm(false)} className="pressable flex-1 font-semibold" style={{ height: '52px', backgroundColor: '#EBEBEB', color: '#70737B', borderRadius: '12px', fontSize: '16px', border: 'none', cursor: 'pointer' }}>취소</button>
@@ -961,10 +1127,11 @@ export default function DailyScheduleChange({ onClose }: { onClose: () => void }
             <p style={{ fontSize: '14px', fontWeight: 400, letterSpacing: '-0.02em', color: '#70737B', textAlign: 'center', marginBottom: '12px', lineHeight: '1.5' }}>
               아래와 같이 근무 일정을 교환하시겠어요?<br />변경 일정은 해당 직원에게도 안내돼요
             </p>
-            <div className="text-left text-[13px] space-y-1.5 mx-5 mb-5 p-3 rounded-xl" style={{ backgroundColor: '#F7F8FA' }}>
-              <div className="flex"><span className="text-muted-foreground w-20">직원</span><span className="font-bold text-foreground">{staff.name} ↔ <span className="text-primary">{exchangeStaff.name}</span></span></div>
-              <div className="flex"><span className="text-muted-foreground w-20">선택한 일정</span><span className="text-foreground">{formatDateConfirm(selectedDate)} | {editStaff1StartTime ? editStaff1StartTime.replace("오전 ", "").replace("오후 ", "") : staff.startTime}-{editStaff1EndTime ? editStaff1EndTime.replace("오전 ", "").replace("오후 ", "") : staff.endTime}</span></div>
-              <div className="flex"><span className="text-muted-foreground w-20">교환된 일정</span><span className="text-primary font-bold">{formatDateConfirm(exchangeDate)} | {editStaff2StartTime ? editStaff2StartTime.replace("오전 ", "").replace("오후 ", "") : exchangeStaff.startTime}-{editStaff2EndTime ? editStaff2EndTime.replace("오전 ", "").replace("오후 ", "") : exchangeStaff.endTime}</span></div>
+            <div className="text-left text-[13px] space-y-1.5 mb-5 p-3 rounded-xl w-full" style={{ backgroundColor: '#F7F8FA', overflow: 'hidden' }}>
+              <div className="flex gap-2"><span style={{ color: '#9EA3AD', minWidth: '60px', flexShrink: 0 }}>직원</span><span className="font-bold text-foreground truncate">{staff.name} ↔ <span className="text-primary">{exchangeStaff.name}</span></span></div>
+              <div style={{ height: '1px', backgroundColor: '#EBEBEB', margin: '4px 0' }} />
+              <div className="flex flex-col gap-0.5"><span style={{ color: '#9EA3AD' }}>{staff.name}</span><span className="text-foreground">{formatDateConfirm(selectedDate)} → <span className="text-primary font-bold">{formatDateConfirm(exchangeDate)} | {exchangeStaff.startTime}-{exchangeStaff.endTime}</span></span></div>
+              <div className="flex flex-col gap-0.5"><span style={{ color: '#9EA3AD' }}>{exchangeStaff.name}</span><span className="text-foreground">{formatDateConfirm(exchangeDate)} → <span className="text-primary font-bold">{formatDateConfirm(selectedDate)} | {staff.startTime}-{staff.endTime}</span></span></div>
             </div>
             <div className="flex" style={{ gap: '8px', width: '100%' }}>
               <button onClick={() => setShowExchangeConfirm(false)} className="pressable flex-1 font-semibold" style={{ height: '52px', backgroundColor: '#EBEBEB', color: '#70737B', borderRadius: '12px', fontSize: '16px', border: 'none', cursor: 'pointer' }}>취소</button>
@@ -983,9 +1150,9 @@ export default function DailyScheduleChange({ onClose }: { onClose: () => void }
             <p style={{ fontSize: '14px', fontWeight: 400, letterSpacing: '-0.02em', color: '#70737B', textAlign: 'center', marginBottom: '12px', lineHeight: '1.5' }}>
               대타 근무자를 등록하시겠어요?<br />변경 일정은 해당 직원에게도 안내돼요
             </p>
-            <div className="text-left text-[13px] space-y-1.5 mx-5 mb-5 p-3 rounded-xl" style={{ backgroundColor: '#F7F8FA' }}>
-              <div className="flex"><span className="text-muted-foreground w-20">직원</span><span className="font-bold text-foreground">{staff.name} → <span className="text-primary">{substituteStaff.name}</span></span></div>
-              <div className="flex"><span className="text-muted-foreground w-20">근무 일정</span><span className="text-foreground">{formatDateConfirm(selectedDate)} | {staff.startTime}-{staff.endTime}</span></div>
+            <div className="text-left text-[13px] space-y-1.5 w-full mb-5 p-3 rounded-xl" style={{ backgroundColor: '#F7F8FA' }}>
+              <div className="flex"><span style={{ color: '#9EA3AD', minWidth: '80px', flexShrink: 0 }}>직원</span><span className="font-bold text-foreground" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{staff.name} → <span className="text-primary">{substituteStaff.name}</span></span></div>
+              <div className="flex"><span style={{ color: '#9EA3AD', minWidth: '80px', flexShrink: 0 }}>근무 일정</span><span className="text-foreground" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{formatDateConfirm(selectedDate)} | {staff.startTime}-{staff.endTime}</span></div>
             </div>
             <div className="flex" style={{ gap: '8px', width: '100%' }}>
               <button onClick={() => setShowSubstituteConfirm(false)} className="pressable flex-1 font-semibold" style={{ height: '52px', backgroundColor: '#EBEBEB', color: '#70737B', borderRadius: '12px', fontSize: '16px', border: 'none', cursor: 'pointer' }}>취소</button>

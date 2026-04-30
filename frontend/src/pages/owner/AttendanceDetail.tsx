@@ -677,7 +677,7 @@ export default function AttendanceDetail() {
                         salaryType: selectedStaff.salaryType,
                         salaryAmount: String(selectedStaff.salaryAmount),
                       });
-                      navigate(`/attendance/edit?${params.toString()}`);
+                      navigate(`/owner/attendance/edit?${params.toString()}`);
                     }}
                       style={{ width: '100%', marginTop: '20px', height: '56px', borderRadius: '16px', backgroundColor: '#4261FF', color: '#FFFFFF', fontSize: '16px', fontWeight: 700, letterSpacing: '-0.02em', border: 'none', cursor: 'pointer' }}>
                       근태 정보 수정하기

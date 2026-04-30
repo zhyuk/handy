@@ -230,7 +230,7 @@ export default function PayslipEdit() {
     });
     const hasModified = Object.keys(changes).length > 0;
     const changesParam = hasModified ? `&changes=${encodeURIComponent(JSON.stringify(changes))}` : "";
-    setTimeout(() => navigate(`/salary/payslip?name=${encodeURIComponent(staffName)}&editing=true${hasModified ? "&modified=true" : ""}${changesParam}`, { replace: true }), 500);
+    setTimeout(() => navigate(`/owner/salary/payslip?name=${encodeURIComponent(staffName)}&editing=true${hasModified ? "&modified=true" : ""}${changesParam}`, { replace: true }), 500);
   };
 
   const sheets: Record<string, { label: string; value: string; setter: (v: string) => void; subNote?: string }> = {

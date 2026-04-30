@@ -92,12 +92,12 @@ export default function PayslipPublish() {
     setPublishedComment(comment);
     localStorage.setItem(`payslip_published_${staffName}`, new Date().toISOString());
     toast({ description: "급여명세서가 발급되었어요.", duration: 3000 });
-    };
+  };
 
   const publishedAtRaw = localStorage.getItem(`payslip_published_${staffName}`);
   const formatPublishedAt = (iso: string) => {
     const d = new Date(iso);
-    return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   };
 
   const handleTransferConfirm = () => {
@@ -114,7 +114,11 @@ export default function PayslipPublish() {
         {/* Header — ② 발행 여부에 따라 타이틀 분기 */}
         <div className="sticky top-0 z-10" style={{ backgroundColor: '#FFFFFF' }}>
           <div className="flex items-center gap-2 px-2 pt-4 pb-2">
-            <button onClick={() => isPublished ? (from === 'detail' ? navigate(`/salary?staff=${encodeURIComponent(staffName)}`, { replace: true }) : navigate('/salary?tab=payslip', { replace: true })) : navigate(-1)} className="pressable p-1">
+            <button onClick={() => isPublished
+              ? (from === 'detail'
+                ? navigate(`/owner/salary?staff=${encodeURIComponent(staffName)}`, { replace: true })
+                : navigate('/owner/salary?tab=payslip', { replace: true }))  // /salary → /owner/salary
+              : navigate(-1)} className="pressable p-1">
               <ChevronLeft className="h-6 w-6 text-foreground" />
             </button>
             <h1 style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.02em', color: '#19191B' }}>
