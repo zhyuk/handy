@@ -80,6 +80,10 @@ export default function StoreInfo() {
 
   useEffect(() => {
     if (!storeInfo) return;
+    if (!storeInfo.setting) {
+      navigate("/owner/store/hours", { state: { storeInfo } });
+      return;
+    }
 
     const noHours = !storeInfo.setting.open_time || !storeInfo.setting.close_time || storeInfo.setting.is_holiday === null;
     const noParts = (storeInfo.parts ?? []).length === 0;
@@ -107,7 +111,7 @@ export default function StoreInfo() {
 
   console.log(storeInfo);
 
-  if (!storeInfo) {
+  if (!storeInfo || !storeInfo.setting) {
     return <div className="p-8 text-center">매장 정보를 불러오는 중입니다...</div>;
   }
 
