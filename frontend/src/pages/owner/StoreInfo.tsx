@@ -82,7 +82,7 @@ export default function StoreInfo() {
     if (!storeInfo) return;
 
     const noHours = !storeInfo.setting.open_time || !storeInfo.setting.close_time || storeInfo.setting.is_holiday === null;
-    const noParts = storeInfo.parts.length === 0;
+    const noParts = (storeInfo.parts ?? []).length === 0;
     const noStandard = storeInfo.radius === null || storeInfo.setting.late_minutes === null;
     const noPaySetting =
       storeInfo.setting.has_overtime_pay === null ||
@@ -173,7 +173,7 @@ export default function StoreInfo() {
             </button>
             <div className="border-t border-border pt-3 space-y-2.5">
               <InfoRow label="매장명" value={storeInfo.name} />
-              <InfoRow label="매장코드" value={storeInfo.code} isLink />
+              <InfoRow label="매장코드" value={String(storeInfo.code)} isLink />
               {expanded && (
                 <>
                   <InfoRow label="주소" value={`${storeInfo.address} ${storeInfo.addressDetail || ''}`} />
@@ -215,8 +215,8 @@ export default function StoreInfo() {
                       : "-"
               } />
               <InfoRow label="영업 파트" value={
-                storeInfo.parts.length > 0
-                  ? [...storeInfo.parts]
+                (storeInfo.parts ?? []).length > 0
+                  ? [...(storeInfo.parts ?? [])]
                     .sort((a, b) => a.start_time.localeCompare(b.start_time))
                     .map(p => `${p.name} ${formattingTime(p.start_time)} ~ ${formattingTime(p.end_time)}`)
                     .join("\n")

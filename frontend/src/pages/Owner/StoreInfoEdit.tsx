@@ -229,10 +229,10 @@ export default function StoreInfoEdit() {
           document.body
         )}
 
-        <FieldDrawer open={drawerType === "storeName"} onOpenChange={o => !o && setDrawerType(null)} title="매장명 입력하기" placeholder="매장명 입력" value={storeName} onConfirm={setStoreName} />
-        <FieldDrawer open={drawerType === "addressDetail"} onOpenChange={o => !o && setDrawerType(null)} title="상세 주소 입력하기" placeholder="상세 주소 입력" value={addressDetail} onConfirm={setAddressDetail} required={false} />
-        <FieldDrawer open={drawerType === "ownerName"} onOpenChange={o => !o && setDrawerType(null)} title="대표자명 입력하기" placeholder="대표자명 입력" value={ownerName} onConfirm={setOwnerName} />
-        <FieldDrawer open={drawerType === "phone"} onOpenChange={o => !o && setDrawerType(null)} title="대표번호 입력하기" placeholder="'-' 포함 입력" value={phone} onConfirm={setPhone} inputType="tel" />
+        <FieldDrawer open={drawerType === "storeName"} onOpenChange={o => !o && setDrawerType(null)} title="매장명 입력하기" placeholder="매장명 입력" value={storeName ?? ""} onConfirm={setStoreName} />
+        <FieldDrawer open={drawerType === "addressDetail"} onOpenChange={o => !o && setDrawerType(null)} title="상세 주소 입력하기" placeholder="상세 주소 입력" value={addressDetail ?? ""} onConfirm={setAddressDetail} required={false} />
+        <FieldDrawer open={drawerType === "ownerName"} onOpenChange={o => !o && setDrawerType(null)} title="대표자명 입력하기" placeholder="대표자명 입력" value={ownerName ?? ""} onConfirm={setOwnerName} />
+        <FieldDrawer open={drawerType === "phone"} onOpenChange={o => !o && setDrawerType(null)} title="대표번호 입력하기" placeholder="'-' 포함 입력" value={phone ?? ""} onConfirm={setPhone} inputType="tel" />
         {confirmOpen && createPortal(
           <div className="fixed inset-0 z-[200] bg-black/80 flex items-center justify-center" onClick={() => setConfirmOpen(false)}>
             <div style={{ width: "calc(100% - 48px)", maxWidth: "320px", backgroundColor: "#FFFFFF", borderRadius: "20px", display: "flex", flexDirection: "column", alignItems: "center", padding: "28px 16px 16px" }} onClick={e => e.stopPropagation()}>

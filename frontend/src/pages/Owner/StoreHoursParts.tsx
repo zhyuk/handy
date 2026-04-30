@@ -141,18 +141,18 @@ export default function StoreHoursParts() {
   const isThree = sortedParts.length === 3;
 
   const [morningName, setMorningName] = useState(p0?.name ?? "오픈");
-  const [morningStart, setMorningStart] = useState(formattingTime(p0?.start_time) ?? "");
-  const [morningEnd, setMorningEnd] = useState(formattingTime(p0?.end_time) ?? "");
+  const [morningStart, setMorningStart] = useState(p0?.start_time ? formattingTime(p0.start_time) : "");
+  const [morningEnd, setMorningEnd] = useState(p0?.end_time ? formattingTime(p0.end_time) : "");
 
   const [afternoonUse, setAfternoonUse] = useState(isThree ? "사용" : "미사용");
   const [afternoonName, setAfternoonName] = useState(isThree ? (p1?.name ?? "미들") : "미들");
-  const [afternoonStart, setAfternoonStart] = useState(isThree ? (formattingTime(p1?.start_time) ?? "") : "");
-  const [afternoonEnd, setAfternoonEnd] = useState(isThree ? (formattingTime(p1?.end_time) ?? "") : "");
+  const [afternoonStart, setAfternoonStart] = useState(isThree && p1?.start_time ? formattingTime(p1.start_time) : "");
+  const [afternoonEnd, setAfternoonEnd] = useState(isThree && p1?.end_time ? formattingTime(p1.end_time) : "");
 
   const lastPart = isThree ? p2 : p1;
   const [eveningName, setEveningName] = useState(lastPart?.name ?? "마감");
-  const [eveningStart, setEveningStart] = useState(formattingTime(lastPart?.start_time) ?? "");
-  const [eveningEnd, setEveningEnd] = useState(formattingTime(lastPart?.end_time) ?? "");
+  const [eveningStart, setEveningStart] = useState(lastPart?.start_time ? formattingTime(lastPart.start_time) : "");
+  const [eveningEnd, setEveningEnd] = useState(lastPart?.end_time ? formattingTime(lastPart.end_time) : "");
 
   const [drawerType, setDrawerType] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
