@@ -106,9 +106,9 @@ export default function SalaryDetail() {
   };
 
   const handleBack = () => {
-    if (fromParam === 'all') navigate('/salary', { replace: true });
-    else if (fromParam === 'payslip') navigate(`/salary/payslip?name=${encodeURIComponent(staffName)}`, { replace: true });
-    else navigate(`/salary?staff=${encodeURIComponent(staffName)}`, { replace: true });
+    if (fromParam === 'all') navigate('/owner/salary', { replace: true });
+    else if (fromParam === 'payslip') navigate(`/owner/salary/payslip?name=${encodeURIComponent(staffName)}`, { replace: true });
+    else navigate(`/owner/salary?staff=${encodeURIComponent(staffName)}`, { replace: true });
   };
 
   return (
@@ -292,19 +292,19 @@ export default function SalaryDetail() {
             )}
             {isPublished ? (
               <button
-                onClick={() => navigate(`/salary/payslip/publish?name=${encodeURIComponent(staffName)}&published=true&from=detail${publishedAtRaw ? '&publishedAt=' + encodeURIComponent(publishedAtRaw) : ''}`)}
+                onClick={() => navigate(`/owner/salary/payslip/publish?name=${encodeURIComponent(staffName)}&published=true&from=detail${publishedAtRaw ? '&publishedAt=' + encodeURIComponent(publishedAtRaw) : ''}`)}
                 style={{ width: '100%', height: '56px', backgroundColor: '#4261FF', borderRadius: '16px', border: 'none', fontSize: '16px', fontWeight: 700, color: '#FFFFFF', cursor: 'pointer', letterSpacing: '-0.02em' }}>
                 급여명세서 보기
               </button>
             ) : (
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button
-                  onClick={() => navigate(`/salary/detail/edit?name=${encodeURIComponent(staffName)}&date=${dateStr}`)}
+                  onClick={() => navigate(`/owner/salary/detail/edit?name=${encodeURIComponent(staffName)}&date=${dateStr}`)}
                   style={{ flex: 1, height: '56px', backgroundColor: '#F0F4FF', borderRadius: '16px', border: 'none', fontSize: '16px', fontWeight: 700, color: '#4261FF', cursor: 'pointer', letterSpacing: '-0.02em' }}>
                   급여 정보 수정하기
                 </button>
                 <button
-                  onClick={() => navigate(`/salary/payslip?name=${encodeURIComponent(staffName)}&from=detail`)}
+                  onClick={() => navigate(`/owner/salary/payslip?name=${encodeURIComponent(staffName)}&from=detail`)}
                   style={{ flex: 1, height: '56px', backgroundColor: '#4261FF', borderRadius: '16px', border: 'none', fontSize: '16px', fontWeight: 700, color: '#FFFFFF', cursor: 'pointer', letterSpacing: '-0.02em' }}>
                   급여명세서 확인
                 </button>
