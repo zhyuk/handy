@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
 import { storeSettings } from "@/lib/storeSettings";
 import { getStoreInfo } from "@/api/owner/store";
+import { formattingTime } from "@/utils/function";
 
 export interface StoreData {
   id: number;
@@ -17,6 +18,7 @@ export interface StoreData {
   rawDigits: string;
   radius: number;
   setting: StoreSetting;
+  parts: StorePart[];
 }
 
 interface StoreSetting {
@@ -43,6 +45,14 @@ interface StoreSetting {
   holiday_multiplier_over_8h: number | null;
 }
 
+export interface StorePart {
+  id: number;
+  store_id: number;
+  name: string;
+  start_time: string;
+  end_time: string;
+}
+
 export default function StoreInfo() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -50,8 +60,6 @@ export default function StoreInfo() {
   const storeId = location.state?.storeId || Number(localStorage.getItem("currentStoreId"));
   const [expanded, setExpanded] = useState(false);
   const [bannerVisible, setBannerVisible] = useState(true);
-  const [hours, setHours] = useState(storeSettings.getHours());
-  const [parts, setParts] = useState(storeSettings.getParts());
   const [storeInfo, setStoreInfo] = useState<StoreData>();
 
   useEffect(() => {
@@ -74,33 +82,26 @@ export default function StoreInfo() {
     if (!storeInfo) return;
 
     const noHours = !storeInfo.setting.open_time || !storeInfo.setting.close_time || storeInfo.setting.is_holiday === null;
+    const noParts = storeInfo.parts.length === 0;
     const noStandard = storeInfo.radius === null || storeInfo.setting.late_minutes === null;
+    const noPaySetting =
+      storeInfo.setting.has_overtime_pay === null ||
+      storeInfo.setting.has_night_pay === null ||
+      storeInfo.setting.has_holiday_pay === null;
 
-    // if (noHours) {
-    //   navigate("/owner/store/hours", { state: { storeInfo } });
-    // } else if (noStandard) {
-    //   navigate("/owner/store/attendance-standard", { state: { storeInfo } });
-    // }
+    if (noHours) {
+      navigate("/owner/store/hours", { state: { storeInfo } });
+    } else if (noParts) {
+      navigate("/owner/store/hours/parts", {
+        state: { storeInfo }
+      });
+    } else if (noStandard) {
+      navigate("/owner/store/attendance-standard", { state: { storeInfo } });
+    } else if (noPaySetting) {
+      navigate("/owner/store/attendance-standard", { state: { storeInfo, step: 2 } });
+    }
   }, [storeInfo]);
 
-  // 영업 파트 문자열 생성 (오후 미사용이면 제외)
-  const partLines: string[] = [];
-  if (parts.morningName && parts.morningStart && parts.morningEnd) {
-    partLines.push(`${parts.morningName} ${parts.morningStart} ~ ${parts.morningEnd}`);
-  }
-  if (parts.afternoonUse === "사용" && parts.afternoonName && parts.afternoonStart && parts.afternoonEnd) {
-    partLines.push(`${parts.afternoonName} ${parts.afternoonStart} ~ ${parts.afternoonEnd}`);
-  }
-  if (parts.eveningName && parts.eveningStart && parts.eveningEnd) {
-    partLines.push(`${parts.eveningName} ${parts.eveningStart} ~ ${parts.eveningEnd}`);
-  }
-  const partsValue = partLines.join("\n") || "-";
-
-  const holidayValue = hours.hasHoliday === "없음"
-    ? "없음"
-    : hours.holidayDays.length > 0
-      ? `${hours.holidayCycle} ${hours.holidayDays.join(", ")}`
-      : "-";
 
   const cardStyle = { boxShadow: '2px 2px 12px rgba(0,0,0,0.06)' };
 
@@ -201,11 +202,26 @@ export default function StoreInfo() {
             <div className="border-t border-border pt-3 space-y-2.5">
               <InfoRow label="영업 시간" value={
                 storeInfo.setting.open_time && storeInfo.setting.close_time
-                  ? `${storeInfo.setting.open_time.slice(0, 5)} ~ ${storeInfo.setting.close_time.slice(0, 5)}`
+                  ? `${formattingTime(storeInfo.setting.open_time)} ~ ${formattingTime(storeInfo.setting.close_time)}`
                   : "-"
               } />
-              <InfoRow label="고정 휴무일" value={holidayValue} />
-              <InfoRow label="영업 파트" value={partsValue} />
+              <InfoRow label="고정 휴무일" value={
+                storeInfo.setting.is_holiday === null
+                  ? "-"
+                  : !storeInfo.setting.is_holiday
+                    ? "없음"
+                    : (storeInfo.setting.holiday_day ?? []).length > 0
+                      ? `${storeInfo.setting.holiday_cycle ?? ""} ${(storeInfo.setting.holiday_day ?? []).join(", ")}`.trim()
+                      : "-"
+              } />
+              <InfoRow label="영업 파트" value={
+                storeInfo.parts.length > 0
+                  ? [...storeInfo.parts]
+                    .sort((a, b) => a.start_time.localeCompare(b.start_time))
+                    .map(p => `${p.name} ${formattingTime(p.start_time)} ~ ${formattingTime(p.end_time)}`)
+                    .join("\n")
+                  : "-"
+              } />
             </div>
           </div>
 
@@ -221,7 +237,11 @@ export default function StoreInfo() {
             <div className="border-t border-border pt-3 space-y-2.5">
               <InfoRow label="출퇴근 거리" value={`${storeInfo.radius}M`} />
               <InfoRow label="지각 기준" value="출근시간+5분 부터" />
-              <InfoRow label="추가 수당" value={`연장 수당 : 미적용\n야간 수당 : 미적용\n휴일 수당 : 미적용`} />
+              <InfoRow label="추가 수당" value={[
+                `연장 수당 : ${storeInfo.setting.has_overtime_pay === null ? "-" : storeInfo.setting.has_overtime_pay ? "적용" : "미적용"}`,
+                `야간 수당 : ${storeInfo.setting.has_night_pay === null ? "-" : storeInfo.setting.has_night_pay ? "적용" : "미적용"}`,
+                `휴일 수당 : ${storeInfo.setting.has_holiday_pay === null ? "-" : storeInfo.setting.has_holiday_pay ? "적용" : "미적용"}`,
+              ].join("\n")} />
             </div>
           </div>
         </div>

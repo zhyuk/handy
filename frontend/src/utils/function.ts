@@ -40,3 +40,9 @@ export const moveToHome = (currentRole: string) => {
     if (currentRole === "owner") return "/owner/home"
     else return "/employee/home"
 }
+
+// time 자료형 포매팅 함수
+"nn:mm:ss -> nn:mm 변환 함수"
+export const formattingTime = (time: string) => {
+    return time.slice(0, 5);
+}

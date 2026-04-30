@@ -395,7 +395,11 @@ const Index = () => {
         type={mapDialogType}
         onConfirm={mapDialogType === "clock_in" ? handleClockIn : handleClockOut}
         onCancel={() => setMapDialogOpen(false)}
+        storeLat={storeLocation?.lat ?? 0}
+        storeLng={storeLocation?.lng ?? 0}
+        storeRadius={storeLocation?.radius ?? 100}
       />
+      
       <BreakConfirmDialog
         open={breakDialogOpen}
         type={breakDialogType}

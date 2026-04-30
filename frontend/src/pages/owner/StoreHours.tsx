@@ -4,6 +4,7 @@ import { useState } from "react";
 import { storeSettings } from "@/lib/storeSettings";
 import { createPortal } from "react-dom";
 import { useToast } from "@/hooks/use-toast";
+import { formattingTime } from "@/utils/function";
 
 const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
   const h = String(Math.floor(i / 2)).padStart(2, "0");
@@ -196,15 +197,14 @@ export default function StoreHours() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const storeInfo = location.state?.storeInfo.setting;
+  const storeInfo = location.state?.storeInfo;
   console.log(storeInfo);
 
-  const _h = storeSettings.getHours();
-  const [openTime, setOpenTime] = useState(storeInfo.open_time || "09:00");
-  const [closeTime, setCloseTime] = useState(storeInfo.close_time || "22:00");
-  const [hasHoliday, setHasHoliday] = useState(storeInfo.is_holiday || "없음");
-  const [holidayCycle, setHolidayCycle] = useState(storeInfo.holiday_cycle || "");
-  const [holidayDays, setHolidayDays] = useState<string[]>(storeInfo.holiday_day || []);
+  const [openTime, setOpenTime] = useState(formattingTime(storeInfo.setting.open_time) || "09:00");
+  const [closeTime, setCloseTime] = useState(formattingTime(storeInfo.setting.close_time) || "22:00");
+  const [hasHoliday, setHasHoliday] = useState(storeInfo.setting.is_holiday ? "있음" : "없음");
+  const [holidayCycle, setHolidayCycle] = useState(storeInfo.setting.holiday_cycle || "");
+  const [holidayDays, setHolidayDays] = useState<string[]>(storeInfo.setting.holiday_day || []);
 
   const [drawerType, setDrawerType] = useState<string | null>(null);
   const [focusedField, setFocusedField] = useState<string | null>(null);
@@ -214,8 +214,22 @@ export default function StoreHours() {
     (hasHoliday === "없음" || (holidayCycle && holidayDays.length > 0));
 
   const handleNext = () => {
-    storeSettings.saveHours({ openTime, closeTime, hasHoliday, holidayCycle, holidayDays });
-    navigate("/owner/store/hours/parts", { state: { storeInfo } });
+    // storeSettings.saveHours({ openTime, closeTime, hasHoliday, holidayCycle, holidayDays });
+    navigate("/owner/store/hours/parts", {
+      state: {
+        storeInfo: {
+          ...location.state?.storeInfo,
+          setting: {
+            ...location.state?.storeInfo.setting,
+            open_time: openTime,
+            close_time: closeTime,
+            is_holiday: hasHoliday === "있음",
+            holiday_cycle: holidayCycle,
+            holiday_day: holidayDays,
+          }
+        }
+      }
+    });
   };
 
   return (
@@ -257,7 +271,7 @@ export default function StoreHours() {
                 className="w-full flex items-center justify-between bg-background" style={{ height: '52px', padding: '0 20px', border: focusedField === "openTime" ? '2px solid #4261FF' : '1px solid #DBDCDF', borderRadius: '10px', transition: 'border 0.15s' }}
               >
                 <span className={openTime ? "text-foreground" : "text-muted-foreground"}>
-                  {openTime || "오픈 시간 입력"}
+                  {formattingTime(openTime) || "오픈 시간 입력"}
                 </span>
                 <ChevronDown className="w-5 h-5 text-muted-foreground" />
               </button>
@@ -274,7 +288,7 @@ export default function StoreHours() {
                 className="w-full flex items-center justify-between bg-background" style={{ height: '52px', padding: '0 20px', border: focusedField === "closeTime" ? '2px solid #4261FF' : '1px solid #DBDCDF', borderRadius: '10px', transition: 'border 0.15s' }}
               >
                 <span className={closeTime ? "text-foreground" : "text-muted-foreground"}>
-                  {closeTime || "마감 시간 입력"}
+                  {formattingTime(closeTime) || "마감 시간 입력"}
                 </span>
                 <ChevronDown className="w-5 h-5 text-muted-foreground" />
               </button>

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "@/hooks/use-toast";
 import { storeSettings } from "@/lib/storeSettings";
+import { formattingTime } from "@/utils/function";
+import { updateStoreParts, updateStoreSetting } from "@/api/owner/store";
 
 const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
   const h = String(Math.floor(i / 2)).padStart(2, "0");
@@ -46,9 +48,8 @@ function SelectDrawer({
             return (
               <button
                 key={opt}
-                className={`w-full text-left px-4 py-3.5 rounded-xl text-[15px] flex items-center justify-between ${
-                  isSelected ? "bg-primary/10 text-primary font-medium" : "text-foreground"
-                }`}
+                className={`w-full text-left px-4 py-3.5 rounded-xl text-[15px] flex items-center justify-between ${isSelected ? "bg-primary/10 text-primary font-medium" : "text-foreground"
+                  }`}
                 onClick={() => {
                   setSelected(opt);
                   onSelect(opt);
@@ -102,9 +103,8 @@ function TimePickerDrawer({
             return (
               <button
                 key={time}
-                className={`w-full text-left px-4 py-3 rounded-xl text-[15px] flex items-center justify-between ${
-                  isSelected ? "bg-primary/10 text-primary font-medium" : "text-foreground"
-                }`}
+                className={`w-full text-left px-4 py-3 rounded-xl text-[15px] flex items-center justify-between ${isSelected ? "bg-primary/10 text-primary font-medium" : "text-foreground"
+                  }`}
                 onClick={() => {
                   setSelected(time);
                   onSelect(time);
@@ -125,24 +125,34 @@ function TimePickerDrawer({
 
 export default function StoreHoursParts() {
   const navigate = useNavigate();
-    const location = useLocation();
-  
-    const storeInfo = location.state?.storeInfo;
-    console.log(storeInfo);
+  const location = useLocation();
 
-  const _p = storeSettings.getParts();
-  const [morningName, setMorningName] = useState(_p.morningName || "");
-  const [morningStart, setMorningStart] = useState(_p.morningStart || "");
-  const [morningEnd, setMorningEnd] = useState(_p.morningEnd || "");
+  const storeInfo = location.state?.storeInfo;
+  console.log(storeInfo);
 
-  const [afternoonUse, setAfternoonUse] = useState(_p.afternoonUse || "");
-  const [afternoonName, setAfternoonName] = useState(_p.afternoonName || "");
-  const [afternoonStart, setAfternoonStart] = useState(_p.afternoonStart || "");
-  const [afternoonEnd, setAfternoonEnd] = useState(_p.afternoonEnd || "");
+  const sortedParts = [...(storeInfo.parts ?? [])].sort((a, b) =>
+    a.start_time.localeCompare(b.start_time)
+  );
 
-  const [eveningName, setEveningName] = useState(_p.eveningName || "");
-  const [eveningStart, setEveningStart] = useState(_p.eveningStart || "");
-  const [eveningEnd, setEveningEnd] = useState(_p.eveningEnd || "");
+  const p0 = sortedParts[0]; // 오픈
+  const p1 = sortedParts[1]; // 미들 (3개일 때)
+  const p2 = sortedParts[2]; // 마감 (3개일 때), 2개면 sortedParts[1]
+
+  const isThree = sortedParts.length === 3;
+
+  const [morningName, setMorningName] = useState(p0?.name ?? "오픈");
+  const [morningStart, setMorningStart] = useState(formattingTime(p0?.start_time) ?? "");
+  const [morningEnd, setMorningEnd] = useState(formattingTime(p0?.end_time) ?? "");
+
+  const [afternoonUse, setAfternoonUse] = useState(isThree ? "사용" : "미사용");
+  const [afternoonName, setAfternoonName] = useState(isThree ? (p1?.name ?? "미들") : "미들");
+  const [afternoonStart, setAfternoonStart] = useState(isThree ? (formattingTime(p1?.start_time) ?? "") : "");
+  const [afternoonEnd, setAfternoonEnd] = useState(isThree ? (formattingTime(p1?.end_time) ?? "") : "");
+
+  const lastPart = isThree ? p2 : p1;
+  const [eveningName, setEveningName] = useState(lastPart?.name ?? "마감");
+  const [eveningStart, setEveningStart] = useState(formattingTime(lastPart?.start_time) ?? "");
+  const [eveningEnd, setEveningEnd] = useState(formattingTime(lastPart?.end_time) ?? "");
 
   const [drawerType, setDrawerType] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -155,11 +165,29 @@ export default function StoreHoursParts() {
     eveningName && eveningStart && eveningEnd &&
     (!isAfternoonUsed || (afternoonName && afternoonStart && afternoonEnd));
 
-  const handleSave = () => {
-    storeSettings.saveParts({ morningName, morningStart, morningEnd, afternoonUse, afternoonName, afternoonStart, afternoonEnd, eveningName, eveningStart, eveningEnd });
-    setConfirmOpen(false);
-    toast({ description: "영업 시간이 저장되었어요", duration: 2000 });
-    navigate("/owner/store");
+  const handleSave = async () => {
+    try {
+      const setting = location.state?.storeInfo?.setting;
+      await Promise.all([
+        updateStoreSetting(storeInfo.id, {
+          open_time: setting.open_time,
+          close_time: setting.close_time,
+          is_holiday: setting.is_holiday,
+          holiday_cycle: setting.holiday_cycle,
+          holiday_day: setting.holiday_day,
+        }),
+        updateStoreParts(storeInfo.id, [
+          { name: morningName, start_time: morningStart, end_time: morningEnd },
+          ...(isAfternoonUsed ? [{ name: afternoonName, start_time: afternoonStart, end_time: afternoonEnd }] : []),
+          { name: eveningName, start_time: eveningStart, end_time: eveningEnd },
+        ]),
+      ]);
+      setConfirmOpen(false);
+      toast({ description: "운영 시간이 저장되었어요", duration: 2000 });
+      navigate("/owner/store");
+    } catch {
+      toast({ description: "저장 중 오류가 발생했어요", variant: "destructive" });
+    }
   };
 
   // 각 파트 시작 시간 필터 계산

@@ -1,9 +1,10 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronDown, X, Check } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useToast } from "@/hooks/use-toast";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { updateAttendanceStandard } from "@/api/owner/store";
 
 const DISTANCE_OPTIONS = ["10m", "50m", "100m", "200m"];
 const LATE_OPTIONS = ["0분", "5분", "10분", "15분", "20분"];
@@ -174,31 +175,56 @@ function SectionNotice({ text }: { text: React.ReactNode }) {
 export default function AttendanceStandard() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const location = useLocation();
 
-  // ── 플로우 스텝 ──
-  const [step, setStep] = useState<1 | 2>(1);
+  const storeInfo = location.state?.storeInfo;
+  const setting = storeInfo?.setting;
+  const initialStep = location.state?.step ?? 1;
+
+  const [step, setStep] = useState<1 | 2>(initialStep);
 
   // ── Step 1: 출퇴근·지각 ──
-  const [distance, setDistance] = useState("");
-  const [lateStandard, setLateStandard] = useState("");
+  const [distance, setDistance] = useState(storeInfo?.radius ? `${storeInfo.radius}m` : "");
+  const [lateStandard, setLateStandard] = useState(setting?.late_minutes != null ? `${setting.late_minutes}분` : "");
 
-  // ── Step 2: 연장 수당 ──
-  const [overtimeMethod, setOvertimeMethod] = useState("");
-  const [overtimeDaily, setOvertimeDaily] = useState("지급");
-  const [overtimeWeekly, setOvertimeWeekly] = useState("지급");
-  const [overtimeRate, setOvertimeRate] = useState("1.5배 (법정 기준)");
-  const [overtimeUnit, setOvertimeUnit] = useState("");
+
+  const [overtimeMethod, setOvertimeMethod] = useState(
+    setting?.has_overtime_pay === null ? "" :
+      setting?.has_overtime_pay ? "지급 (법정 기준 · 하루 8시간 및 주 40시간 초과 시)" : "미지급"
+  );
+  const [overtimeDaily, setOvertimeDaily] = useState(setting?.overtime_after_8h ? "지급" : "미지급");
+  const [overtimeWeekly, setOvertimeWeekly] = useState(setting?.overtime_after_40h ? "지급" : "미지급");
+  const [overtimeRate, setOvertimeRate] = useState(
+    setting?.overtime_multiplier ? `${setting.overtime_multiplier}배` : "1.5배 (법정 기준)"
+  );
+  const [overtimeUnit, setOvertimeUnit] = useState(
+    setting?.overtime_minutes ? `${setting.overtime_minutes}분 단위 계산` : ""
+  );
 
   // ── Step 2: 야간 수당 ──
-  const [nightMethod, setNightMethod] = useState("");
-  const [nightRate, setNightRate] = useState("1.5배 (법정 기준)");
-  const [nightUnit, setNightUnit] = useState("");
+  const [nightMethod, setNightMethod] = useState(
+    setting?.has_night_pay === null ? "" : setting?.has_night_pay ? "적용" : "미적용"
+  );
+  const [nightRate, setNightRate] = useState(
+    setting?.night_multiplier ? `${setting.night_multiplier}배` : "1.5배 (법정 기준)"
+  );
+  const [nightUnit, setNightUnit] = useState(
+    setting?.night_minutes ? `${setting.night_minutes}분 단위 계산` : ""
+  );
 
   // ── Step 2: 휴일 수당 ──
-  const [holidayMethod, setHolidayMethod] = useState("");
-  const [holidayRateUnder8, setHolidayRateUnder8] = useState("1.5배 (법정 기준)");
-  const [holidayRateOver8, setHolidayRateOver8] = useState("2배 (법정 기준)");
-  const [holidayUnit, setHolidayUnit] = useState("");
+  const [holidayMethod, setHolidayMethod] = useState(
+    setting?.has_holiday_pay === null ? "" : setting?.has_holiday_pay ? "적용" : "미적용"
+  );
+  const [holidayRateUnder8, setHolidayRateUnder8] = useState(
+    setting?.holiday_multiplier_under_8h ? `${setting.holiday_multiplier_under_8h}배` : "1.5배 (법정 기준)"
+  );
+  const [holidayRateOver8, setHolidayRateOver8] = useState(
+    setting?.holiday_multiplier_over_8h ? `${setting.holiday_multiplier_over_8h}배` : "2배 (법정 기준)"
+  );
+  const [holidayUnit, setHolidayUnit] = useState(
+    setting?.holiday_minutes ? `${setting.holiday_minutes}분 단위 계산` : ""
+  );
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
@@ -227,6 +253,18 @@ export default function AttendanceStandard() {
     return true;
   })();
 
+  const parseRadius = (v: string) => parseInt(v.replace("m", "").replace("M", ""));
+  const parseLate = (v: string) => parseInt(v.replace("분", ""));
+  const parseMultiplier = (v: string) => parseFloat(v.replace("배 (법정 기준)", "").replace("배", ""));
+  const parseUnit = (v: string) => {
+    if (v.includes("1분")) return 1;
+    if (v.includes("10분")) return 10;
+    if (v.includes("15분")) return 15;
+    if (v.includes("30분")) return 30;
+    if (v.includes("1시간")) return 60;
+    return null;
+  };
+
   const handleBack = () => {
     if (step === 2) setStep(1);
     else navigate(-1);
@@ -237,10 +275,30 @@ export default function AttendanceStandard() {
     setStep(2);
   };
 
-  const handleSave = () => {
-    setConfirmOpen(false);
-    toast({ description: "근태 기준이 저장되었어요", duration: 2000 });
-    setTimeout(() => navigate(-1), 500);
+  const handleSave = async () => {
+    try {
+      await updateAttendanceStandard(storeInfo.id, {
+        radius: parseRadius(distance),
+        late_minutes: parseLate(lateStandard),
+        has_overtime_pay: !!isOvertimePaid,
+        overtime_after_8h: overtimeDaily === "지급",
+        overtime_after_40h: overtimeWeekly === "지급",
+        overtime_multiplier: isOvertimePaid ? parseMultiplier(overtimeRate) : null,
+        overtime_minutes: isOvertimePaid ? parseUnit(overtimeUnit) : null,
+        has_night_pay: isNightPaid,
+        night_multiplier: isNightPaid ? parseMultiplier(nightRate) : null,
+        night_minutes: isNightPaid ? parseUnit(nightUnit) : null,
+        has_holiday_pay: isHolidayPaid,
+        holiday_multiplier_under_8h: isHolidayPaid ? parseMultiplier(holidayRateUnder8) : null,
+        holiday_multiplier_over_8h: isHolidayPaid ? parseMultiplier(holidayRateOver8) : null,
+        holiday_minutes: isHolidayPaid ? parseUnit(holidayUnit) : null,
+      });
+      setConfirmOpen(false);
+      toast({ description: "근태 기준이 저장되었어요", duration: 2000 });
+      setTimeout(() => navigate("/owner/store"), 500);
+    } catch {
+      toast({ description: "저장 중 오류가 발생했어요", variant: "destructive" });
+    }
   };
 
   const f = (field: string) => ({
