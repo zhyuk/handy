@@ -4,7 +4,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight, ChevronDown, Plus, X, UserPlus, UserMinus, CalendarClock, Palmtree } from "lucide-react";
 import ScheduleMonthlyView from "@/components/schedule/ScheduleMonthlyView";
 import ScheduleWeeklyView from "@/components/schedule/ScheduleWeeklyView";
-import ScheduleChangeRequestTab from "@/components/schedule/ScheduleChangeRequestTab";
+// ScheduleDaySheet 인라인으로 대체
+import ScheduleChangeRequestTab, { MOCK_REQUESTS } from "@/components/schedule/ScheduleChangeRequestTab";
 import DailyScheduleAdd from "@/components/schedule/DailyScheduleAdd";
 import DailyScheduleDelete from "@/components/schedule/DailyScheduleDelete";
 import DailyVacationSetting from "@/components/schedule/DailyVacationSetting";
@@ -13,10 +14,11 @@ import DailyScheduleChange from "@/components/schedule/DailyScheduleChange";
 export default function ScheduleManagement() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const initialTab = searchParams.get("tab") === "일정변경요청" ? "일정 변경 요청" : "일정 관리";
-  const [activeTab, setActiveTab] = useState<"일정 관리" | "일정 변경 요청">(initialTab);
-  const [viewMode, setViewMode] = useState<"월간" | "주간">("월간");
-  const [currentDate, setCurrentDate] = useState(new Date(2025, 9, 21)); // 2025-10-21
+  const initialTab = searchParams.get("tab") === "일정변경요청" ? "일정 변경 요청" : "주간 일정";
+  const [activeTab, setActiveTab] = useState<"주간 일정" | "월간 일정" | "일정 변경 요청">(initialTab as "주간 일정" | "월간 일정" | "일정 변경 요청");
+  const [changeRequestCount, setChangeRequestCount] = useState(MOCK_REQUESTS.length);
+  const viewMode = activeTab === "월간 일정" ? "월간" : "주간";
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [fabOpen, setFabOpen] = useState(false);
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
@@ -46,8 +48,11 @@ export default function ScheduleManagement() {
 
   const getWeekNumber = () => {
     const firstDay = new Date(year, month, 1);
+    const firstDayOfWeek = firstDay.getDay(); // 0=일
+    // 월요일 기준: 일요일(0)은 7로 처리
+    const adjustedFirst = firstDayOfWeek === 0 ? 7 : firstDayOfWeek;
     const dayOfMonth = currentDate.getDate();
-    return Math.ceil((dayOfMonth + firstDay.getDay()) / 7);
+    return Math.ceil((dayOfMonth + adjustedFirst - 1) / 7);
   };
 
   const navigateWeek = (dir: number) => {
@@ -64,10 +69,10 @@ export default function ScheduleManagement() {
   const handleNext = () => viewMode === "월간" ? navigateMonth(1) : navigateWeek(1);
 
   const fabActions = [
-    { icon: <Palmtree className="w-5 h-5" />, label: "휴가 처리", key: "vacation" },
-    { icon: <CalendarClock className="w-5 h-5" />, label: "일정 변경", key: "change" },
-    { icon: <UserMinus className="w-5 h-5" />, label: "직원 제거", key: "delete" },
-    { icon: <UserPlus className="w-5 h-5" />, label: "직원 추가", key: "add" },
+    { icon: <UserPlus className="w-5 h-5" />, label: "일일 일정 추가", key: "add" },
+    { icon: <UserMinus className="w-5 h-5" />, label: "직원 일정 삭제", key: "delete" },
+    { icon: <CalendarClock className="w-5 h-5" />, label: "직원 일정 변경", key: "change" },
+    { icon: <Palmtree className="w-5 h-5" />, label: "직원 휴가 처리", key: "vacation" },
   ];
 
   return (
@@ -76,7 +81,7 @@ export default function ScheduleManagement() {
       {/* Header */}
       <div className="sticky top-0 z-10" style={{ backgroundColor: '#FFFFFF' }}>
         <div className="flex items-center gap-2 px-2 pt-4 pb-2">
-          <button onClick={() => navigate('/owner/home')} className="pressable p-1">
+          <button onClick={() => navigate('/')} className="pressable p-1">
             <ChevronLeft className="h-6 w-6 text-foreground" />
           </button>
           <h1 style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.02em', color: '#19191B' }}>일정 관리</h1>
@@ -84,10 +89,10 @@ export default function ScheduleManagement() {
 
         {/* Tabs */}
         <div className="flex border-b border-border px-5" style={{ gap: '24px' }}>
-          {(["일정 관리", "일정 변경 요청"] as const).map((tab) => {
+          {(["주간 일정", "월간 일정", "일정 변경 요청"] as const).map((tab) => {
             const isRequest = tab === "일정 변경 요청";
-            const requestCount = 3;
-            const label = isRequest ? `일정변경요청 ${requestCount}건` : tab;
+            const requestCount = changeRequestCount;
+            const label = isRequest ? `일정 변경 요청 ${requestCount}건` : tab;
             return (
               <button
                 key={tab}
@@ -104,36 +109,22 @@ export default function ScheduleManagement() {
         </div>
       </div>
 
-      {activeTab === "일정 관리" ? (
+      {(activeTab === "주간 일정" || activeTab === "월간 일정") ? (
         <div className="relative">
-          {/* Navigation & View Toggle */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <button onClick={handlePrev} className="pressable p-1"><ChevronLeft style={{ width: '20px', height: '20px', color: '#19191B' }} /></button>
-              <button onClick={() => { setPickerYear(year); setMonthPickerOpen(true); }} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer' }}>
-                <span style={{ fontSize: '17px', fontWeight: 700, color: '#19191B' }}>{headerLabel}</span>
-                <ChevronDown style={{ width: '16px', height: '16px', color: '#9EA3AD' }} />
-              </button>
-              <button onClick={handleNext} className="pressable p-1"><ChevronRight style={{ width: '20px', height: '20px', color: '#19191B' }} /></button>
-            </div>
-            <div style={{ display: 'flex', backgroundColor: '#F0F0F0', borderRadius: '8px', overflow: 'hidden', padding: '2px', gap: '2px' }}>
-              {(["월간", "주간"] as const).map((mode) => (
-                <button
-                  key={mode}
-                  onClick={() => setViewMode(mode)}
-                  style={{ padding: '4px 14px', fontSize: '13px', fontWeight: 600, borderRadius: '6px', border: 'none', cursor: 'pointer', letterSpacing: '-0.02em', backgroundColor: viewMode === mode ? '#FFFFFF' : 'transparent', color: viewMode === mode ? '#19191B' : '#9EA3AD', boxShadow: viewMode === mode ? '0 1px 4px rgba(0,0,0,0.10)' : 'none', transition: 'all 0.12s' }}
-                >
-                  {mode}
-                </button>
-              ))}
-            </div>
+          {/* Navigation */}
+          <div className="flex items-center justify-between px-5 py-4">
+            <button onClick={handlePrev} className="pressable p-1"><ChevronLeft className="h-5 w-5 text-foreground" /></button>
+            <button onClick={() => { setPickerYear(year); setMonthPickerOpen(true); }} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer' }}>
+              <span style={{ fontSize: '17px', fontWeight: 700, color: '#19191B' }}>{headerLabel} ▾</span>
+            </button>
+            <button onClick={handleNext} className="pressable p-1"><ChevronRight className="h-5 w-5 text-foreground" /></button>
           </div>
 
           {viewMode === "월간" ? (
             <ScheduleMonthlyView
               currentDate={currentDate}
               selectedDay={selectedDay}
-              onSelectDay={(day) => setSelectedDay(day)}
+              onSelectDay={(day) => { setSelectedDay(day); setCurrentDate(day); }}
             />
           ) : (
             <ScheduleWeeklyView
@@ -215,7 +206,7 @@ export default function ScheduleManagement() {
             </>,
             document.body
           )}
-          {activeTab === "일정 관리" && !showDailyAdd && !showDailyDelete && !showVacation && !showScheduleChange && (
+          {!showDailyAdd && !showDailyDelete && !showVacation && !showScheduleChange && (
           <div style={{ position: 'fixed', bottom: 'calc(74px + env(safe-area-inset-bottom) + 16px)', right: 'clamp(14px, 4vw, 20px)', zIndex: 201 }}>
             {/* 메인 FAB 버튼 */}
             <button
@@ -243,42 +234,54 @@ export default function ScheduleManagement() {
           )}
         </div>
       ) : (
-        <ScheduleChangeRequestTab />
+        <ScheduleChangeRequestTab onCountChange={setChangeRequestCount} />
       )}
 
       {/* Day Detail Bottom Sheet */}
       {!!selectedDay && createPortal(
-        <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/50" onClick={() => setSelectedDay(null)}>
-          <div className="w-full max-w-lg rounded-t-3xl bg-white shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 pt-5 pb-3">
-              <h3 className="text-[16px] font-bold text-foreground">
-                {selectedDay && `${selectedDay.getFullYear()}년 ${selectedDay.getMonth() + 1}월 ${selectedDay.getDate()}일 (${["일","월","화","수","목","금","토"][selectedDay.getDay()]})`}
-              </h3>
-              <button onClick={() => setSelectedDay(null)} className="pressable p-1">
-                <X className="w-5 h-5 text-foreground" />
+        <div className="fixed inset-0 z-[210] flex items-end justify-center bg-black/50" onClick={() => setSelectedDay(null)}>
+          <div className="w-full max-w-lg rounded-t-2xl bg-white shadow-xl px-6 pb-8 pt-6" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-start justify-between mb-6">
+              <h2 className="text-[22px] font-bold text-foreground">
+                {`${selectedDay.getFullYear()}년 ${selectedDay.getMonth() + 1}월 ${selectedDay.getDate()}일 (${["일","월","화","수","목","금","토"][selectedDay.getDay()]})`}
+              </h2>
+              <button onClick={() => setSelectedDay(null)} className="mt-1">
+                <X className="h-6 w-6 text-foreground" />
               </button>
             </div>
-            <div className="px-5 pb-4 space-y-4">
-              {[
-                { shift: "오픈" as const, time: "08:00 - 12:00", names: ["문자영", "문자일"] },
-                { shift: "미들" as const, time: "12:00 - 16:00", names: ["문자이", "문자삼"] },
-                { shift: "미들" as const, time: "15:00 - 19:00", names: ["문자민", "문자통"] },
-                { shift: "마감" as const, time: "18:00 - 22:00", names: ["문자사", "문자오"] },
-              ].map((entry, i) => {
-                const style = { "오픈": { bg: "#FDF9DF", color: "#FFB300" }, "미들": { bg: "#ECFFF1", color: "#1EDC83" }, "마감": { bg: "#E8F9FF", color: "#14C1FA" } }[entry.shift];
+            {/* Shift entries */}
+            <div className="space-y-5">
+              {([
+                { shift: "오픈" as const, slots: [{ time: "08:00 - 12:00", names: ["문자영", "문자일"] }] },
+                { shift: "미들" as const, slots: [{ time: "12:00 - 16:00", names: ["문자이", "문자삼"] }, { time: "15:00 - 19:00", names: ["문자민", "문자통"] }] },
+                { shift: "마감" as const, slots: [{ time: "18:00 - 22:00", names: ["문자사", "문자오"] }] },
+              ]).map((entry, i) => {
+                const shiftStyle = { "오픈": { bg: "#FDF9DF", color: "#FFB300" }, "미들": { bg: "#ECFFF1", color: "#1EDC83" }, "마감": { bg: "#E8F9FF", color: "#14C1FA" } }[entry.shift];
+                const totalCount = entry.slots.reduce((acc, s) => acc + s.names.length, 0);
                 return (
-                  <div key={i} className="flex items-start gap-3">
-                    <span style={{ display: "inline-flex", alignItems: "center", height: "22px", borderRadius: "4px", padding: "0 8px", fontSize: "12px", fontWeight: 600, backgroundColor: style.bg, color: style.color, flexShrink: 0 }}>
-                      {entry.shift}
-                    </span>
-                    <span className="text-[14px] text-muted-foreground min-w-[100px]">{entry.time}</span>
-                    <span className="text-[14px] text-foreground">{entry.names.join("  ")}</span>
+                  <div key={i}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span style={{ borderRadius: '4px', padding: '4px 8px', fontSize: '13px', fontWeight: 500, backgroundColor: shiftStyle.bg, color: shiftStyle.color }}>
+                        {entry.shift}
+                      </span>
+                      <span className="text-[13px] text-muted-foreground">{totalCount}명</span>
+                    </div>
+                    <div className="space-y-1 pl-2">
+                      {entry.slots.map((slot, si) => (
+                        <div key={si} className="flex items-start gap-3">
+                          <span className="text-[14px] text-muted-foreground whitespace-nowrap">{slot.time}</span>
+                          <span className="text-[14px] font-medium text-foreground">{slot.names.join(', ')}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 );
               })}
             </div>
-            <div className="px-5 pb-8 pt-2">
-              <button onClick={() => setSelectedDay(null)} className="pressable w-full h-14 rounded-2xl text-[16px] font-semibold" style={{ backgroundColor: "#4261FF", color: "#FFFFFF" }}>확인</button>
+            {/* Confirm button */}
+            <div>
+              <button onClick={() => setSelectedDay(null)} className="pressable mt-8 w-full rounded-2xl py-4 text-[16px] font-semibold text-white" style={{ backgroundColor: '#4261FF' }}>확인</button>
             </div>
           </div>
         </div>,
@@ -301,7 +304,7 @@ export default function ScheduleManagement() {
 
       {/* Month Picker Overlay */}
       {monthPickerOpen && createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50" onClick={() => setMonthPickerOpen(false)}>
+        <div className="fixed inset-0 z-[210] flex items-center justify-center bg-black/50" onClick={() => setMonthPickerOpen(false)}>
           <div className="relative rounded-2xl p-5 w-[320px] shadow-lg" style={{ backgroundColor: '#FFFFFF' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
               <button onClick={() => setPickerYear(p => p - 1)} className="pressable p-1"><ChevronLeft style={{ width: '20px', height: '20px', color: '#19191B' }} /></button>

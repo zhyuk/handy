@@ -81,6 +81,7 @@ function EmployeeRow({ emp, onClick, showReturnBadge = false, hideReturnTag = fa
   const isHoliday   = emp.statuses.includes("휴일");
   const isWorking   = emp.statuses.includes("근무중");
   const isPre       = emp.statuses.includes("근무전");
+  const isVacation  = emp.statuses.includes("휴가");
   const isDone      = emp.statuses.includes("근무완료");
   const startTime = emp.time.split(" - ")[0];
   const endTime   = emp.time.split(" - ")[1];
@@ -105,27 +106,58 @@ function EmployeeRow({ emp, onClick, showReturnBadge = false, hideReturnTag = fa
   })();
 
   const renderTime = () => {
+    // 결근: 취소선
     if (isAbsent) return <s style={{ color: '#AAB4BF' }}>{emp.time}</s>;
-    if (isPre) return <span style={{ color: '#AAB4BF' }}>{startTime} 출근 예정</span>;
+    // 휴가: 출퇴근 모두 회색
+    if (isVacation) return <><span style={{ color: '#AAB4BF' }}>{startTime}</span><span style={{ color: '#AAB4BF' }}>{" - "}</span><span style={{ color: '#AAB4BF' }}>{endTime}</span></>;
+    // 근무전: 출퇴근 모두 회색
+    if (isPre) return <><span style={{ color: '#AAB4BF' }}>{startTime}</span><span style={{ color: '#AAB4BF' }}>{" - "}</span><span style={{ color: '#AAB4BF' }}>{endTime}</span></>;
+    // 지각
     if (isLate) {
       const lateTime = emp.actualTime || startTime;
-      // 근무중이면 출근만, 아니면 출퇴근 모두
-      return <><span style={{ color: '#FF862D' }}>{lateTime}</span>{isWorking ? " -" : ` - ${endTime}`}{lateMins > 0 && <span style={{ fontSize: '11px', color: '#AAB4BF', marginLeft: '4px' }}>({lateMins}분 지각)</span>}</>;
+      // 근무중: 출근(주황) - 퇴근(회색)
+      // 퇴근완료: 출근(주황) - 퇴근(검정)
+      const endColor = isWorking ? '#AAB4BF' : '#19191B';
+      return (
+        <>
+          <span style={{ color: '#FF862D' }}>{lateTime}</span>
+          {" - "}
+          <span style={{ color: endColor }}>{endTime}</span>
+          {lateMins > 0 && <span style={{ fontSize: '11px', color: '#AAB4BF', marginLeft: '4px' }}>({lateMins}분 지각)</span>}
+        </>
+      );
     }
+    // 근무중: 출근(검정) - 퇴근(회색), 연장+근무중이면 (n분 연장) 추가
     if (isWorking) {
       const inTime = emp.actualTime || startTime;
-      return <>{inTime}{" -"}</>;
+      if (isExtension) {
+        return <><span style={{ color: '#19191B' }}>{startTime}</span>{" - "}<span style={{ color: '#AAB4BF' }}>{endTime}</span>{extStr && <span style={{ fontSize: '11px', color: '#AAB4BF', marginLeft: '4px' }}>({extStr})</span>}</>;
+      }
+      return <><span style={{ color: '#19191B' }}>{inTime}</span><span style={{ color: '#AAB4BF' }}>{" - "}{endTime}</span></>;
     }
+    // 연장: 출근(검정) - 실제퇴근(파랑)
     if (isExtension && emp.actualTime) {
-      return <>{startTime}{" - "}<span style={{ color: '#7488FE' }}>{emp.actualTime}</span>{extStr && <span style={{ fontSize: '11px', color: '#AAB4BF', marginLeft: '4px' }}>({extStr})</span>}</>;
+      return <><span style={{ color: '#19191B' }}>{startTime}</span>{" - "}<span style={{ color: '#7488FE' }}>{emp.actualTime}</span>{extStr && <span style={{ fontSize: '11px', color: '#AAB4BF', marginLeft: '4px' }}>({extStr})</span>}</>;
     }
+    // 야간: 출퇴근 모두 보라
     if (isNight) {
       return <><span style={{ color: '#6B4FEC' }}>{startTime}</span>{" - "}<span style={{ color: '#6B4FEC' }}>{endTime}</span></>;
     }
+    // 휴일: 출퇴근 모두 주황
     if (isHoliday) {
       return <><span style={{ color: '#E05C00' }}>{startTime}</span>{" - "}<span style={{ color: '#E05C00' }}>{endTime}</span></>;
     }
-    return <>{emp.time}</>;
+    // 근무완료/퇴근: 출퇴근 모두 검정
+    const inTime = emp.actualTime || startTime;
+    const outTime = emp.actualTime || endTime;
+    const isOut = emp.statuses.includes("퇴근") || isDone;
+    return (
+      <>
+        <span style={{ color: '#19191B' }}>{inTime}</span>
+        {" - "}
+        <span style={{ color: isOut ? '#19191B' : '#AAB4BF' }}>{endTime}</span>
+      </>
+    );
   };
 
   // 퇴근 배지: 근무완료 + actualTime 있거나, 지각 + 퇴근시간 노출(근무중 아닌) 케이스
@@ -140,8 +172,13 @@ function EmployeeRow({ emp, onClick, showReturnBadge = false, hideReturnTag = fa
 
   return (
     <button onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}>
-      <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: emp.avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 600, color: '#FFFFFF', flexShrink: 0 }}>
-        {emp.name.slice(-2)}
+      <div style={{ position: 'relative', flexShrink: 0 }}>
+        <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: emp.avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>
+          {emp.name.slice(-2)}
+        </div>
+        {isWorking && (
+          <div style={{ position: 'absolute', top: '0px', right: '0px', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#10C97D', border: '2px solid #FFFFFF' }} />
+        )}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
@@ -514,7 +551,7 @@ export default function AttendanceManagement() {
       time: emp.time,
       ...(emp.actualTime ? { actualTime: emp.actualTime } : {}),
     });
-    navigate(`/owner/attendance/${emp.id}?${params.toString()}`);
+    navigate(`/attendance/${emp.id}?${params.toString()}`);
   };
 
   return (
@@ -522,7 +559,7 @@ export default function AttendanceManagement() {
       <div className="pb-24">
         <div className="sticky top-0 z-10" style={{ backgroundColor: '#FFFFFF' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '16px 8px 8px' }}>
-            <button onClick={() => navigate('/owner/home')} className="pressable p-1">
+            <button onClick={() => navigate('/')} className="pressable p-1">
               <ChevronLeft className="h-6 w-6 text-foreground" />
             </button>
             <h1 style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.02em', color: '#19191B' }}>근태 관리</h1>
