@@ -75,3 +75,14 @@ export async function changePassword(oldPassword: string, newPassword: string) {
         throw err;
     }
 }
+
+export const deleteDocument = async (field: "resume" | "employment_contract" | "health_certificate") => {
+  const res = await fetch(`${BASE_URL}/api/employee/profile/document`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ field }),
+  });
+  if (!res.ok) throw new Error("삭제 실패");
+  return res.json();
+};

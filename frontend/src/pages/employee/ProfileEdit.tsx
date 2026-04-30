@@ -38,7 +38,7 @@ import {
   DrawerContent,
 } from "@/components/ui/drawer";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
-import { changeInfo } from "@/api/mypage";
+import { changeInfo, deleteDocument } from "@/api/mypage";
 
 const allBanks = [
   "국민은행", "신한은행", "농협", "우리은행", "기업은행", "하나은행",
@@ -112,6 +112,7 @@ const ProfileEdit = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTargetIndex, setDeleteTargetIndex] = useState<number | null>(null);
   const [editConfirmOpen, setEditConfirmOpen] = useState(false);
+  const [deletedFields, setDeletedFields] = useState<string[]>([]);
 
   const isFormValid = name.trim() !== "" && bank.trim() !== "" && accountNumber.trim() !== "";
 
@@ -144,6 +145,13 @@ const ProfileEdit = () => {
   };
 
   const handleEditConfirm = async () => {
+    // 삭제된 항목들 DB 반영
+    await Promise.all(
+      deletedFields.map(field =>
+        deleteDocument(field as "resume" | "employment_contract" | "health_certificate")
+      )
+    );
+
     await changeInfo(
       name,
       bank,
@@ -162,8 +170,15 @@ const ProfileEdit = () => {
 
   const handleDeleteDocument = () => {
     if (deleteTargetIndex === null) return;
-    setDocumentItems(prev => prev.map((item, i) =>
-      i === deleteTargetIndex ? { ...item, fileName: null, uploaded: false, file: null } : item
+    const item = documentItems[deleteTargetIndex];
+
+    // 기존 파일이었으면 삭제 대상으로 추가
+    if (item.fileName && !item.file) {
+      setDeletedFields(prev => [...prev, item.key]);
+    }
+
+    setDocumentItems(prev => prev.map((d, i) =>
+      i === deleteTargetIndex ? { ...d, fileName: null, uploaded: false, file: null } : d
     ));
     setDeleteDialogOpen(false);
     setDeleteTargetIndex(null);
@@ -313,7 +328,12 @@ const ProfileEdit = () => {
                 <span className="text-[16px] tracking-[-0.02em] font-medium text-[hsl(223,5%,46%)] w-[100px] flex-shrink-0">{doc.label}</span>
                 {doc.uploaded && doc.fileName ? (
                   <div className="flex items-center gap-2 flex-1">
-                    <span className="text-[16px] tracking-[-0.02em] text-primary font-medium">{doc.fileName}</span>
+                    <span className="text-[16px] tracking-[-0.02em] text-primary font-medium">
+                      {doc.file
+                        ? doc.fileName  // 새로 업로드한 파일
+                        : `${profileData.name}_${doc.label}.${doc.fileName!.split(".")[1]}`  // 기존 파일
+                      }
+                    </span>
                     <button onClick={() => { setDeleteTargetIndex(idx); setDeleteDialogOpen(true); }} className="text-muted-foreground">
                       <X className="w-4 h-4" />
                     </button>
