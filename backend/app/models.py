@@ -66,6 +66,7 @@ class Store(Base):
     number = Column(String(20), nullable=False)
     image = Column(Text, nullable=False)
     radius = Column(Integer, nullable=True, comment="출퇴근 허용거리(m)")
+    created_at = Column(Date, server_default=func.now(), comment="가입일")
 
     # Relationships
     map_info = relationship("StoreMap", back_populates="store", cascade="all, delete-orphan")
@@ -179,6 +180,7 @@ class StoreMembers(Base):
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     store_id = Column(BigInteger, ForeignKey("stores.id"), nullable=False)
     member_id = Column(BigInteger, ForeignKey("members.id"), nullable=False)
+    nickname = Column(String(50), nullable=False)
     role = Column(String(10), server_default="employee")
     bank = Column(String(50), nullable=True)
     accountNumber = Column(String(100), nullable=True)

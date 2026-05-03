@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { ChevronLeft, Edit2, X, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { staffStore, deriveListFields, ShiftType } from "@/lib/staffStore";
+import { getStaffList } from "@/api/owner/staff";
 
 type FilterType = "전체" | "오픈" | "미들" | "마감";
 
@@ -32,6 +33,9 @@ const INITIAL_JOIN_REQUESTS: JoinRequest[] = [
 
 export default function StaffManagement() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const storeId = location.state?.storeId || Number(localStorage.getItem("currentStoreId"));
   const [searchParams] = useSearchParams();
   const initialTab = (searchParams.get("tab") as "관리" | "가입요청" | "초대") || "관리";
   const [activeTab, setActiveTab] = useState<"관리" | "가입요청" | "초대">(initialTab);
@@ -44,7 +48,42 @@ export default function StaffManagement() {
   const [memoInput, setMemoInput] = useState("");
 
   const [, forceUpdate] = useState(0);
-  useEffect(() => staffStore.subscribe(() => forceUpdate(n => n + 1)), []);
+  interface StaffMember {
+    id: number;
+    store_id: number;
+    member_id: number;
+    role: string;
+    bank: string | null;
+    accountNumber: string | null;
+    image_url: string | null;
+    joined_at: string;
+    name: string;
+    phone: string;
+    birth: string | null;
+    gender: string | null;
+    detail: {
+      employee_type: string | null;
+      working_status: string | null;
+      salary_cycle: string | null;
+      hourly_rate: number | null;
+      memo: string | null;
+      resume: string | null;
+      employment_contract: string | null;
+      health_certificate: string | null;
+    } | null;
+  }
+
+  const [staffList, setStaffList] = useState<StaffMember[]>([]);
+
+  useEffect(() => {
+    if (!storeId) return;
+    const fetchStaffList = async () => {
+      const data = await getStaffList(storeId);
+      console.log(data);
+      setStaffList(data);
+    };
+    fetchStaffList();
+  }, []);
 
   const staffData = staffStore.getAll();
 
@@ -229,7 +268,7 @@ export default function StaffManagement() {
                 const cardBorder = isNew
                   ? '2px solid #4261FF'
                   : isGhost ? '1.5px dashed #C8CDD6'
-                  : isEmpty ? '1.5px dashed #DBDCDF' : 'none';
+                    : isEmpty ? '1.5px dashed #DBDCDF' : 'none';
                 const cardShadow = isNew
                   ? '0 0 0 4px rgba(66,97,255,0.12), 2px 2px 12px rgba(0,0,0,0.06)'
                   : isEmpty || isGhost ? 'none' : '2px 2px 12px rgba(0,0,0,0.06)';

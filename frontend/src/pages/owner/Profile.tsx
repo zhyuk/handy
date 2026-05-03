@@ -1,43 +1,64 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, Pencil } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { getMe, logout } from "@/api/public";
+import { calcAge, calculateDaysSince, formatDate, formatPhone, getInfo, getMyStore } from "@/api/owner/mypage";
+import { getPhotoUrl } from "@/utils/function";
 
-const STORES = [
-  {
-    id: 1,
-    name: "컴포즈커피 노량진점",
-    code: "123456",
-    category: "음식/카페",
-    address: "서울특별시 동작구 노량진동 89-9 1층",
-    ceo: "김준서",
-    phone: "02-1234-5678",
-    staffCount: "21명",
-    openDate: "2023.11.22",
-  },
-  {
-    id: 2,
-    name: "메가커피 노량진점",
-    code: "111111",
-    category: "음식/카페",
-    address: "서울특별시 동작구 노량진동 89-9 1층",
-    ceo: "김준서",
-    phone: "02-1234-5678",
-    staffCount: "21명",
-    openDate: "2023.11.22",
-  },
-];
+interface StoreInfo {
+  code: number;
+  industry: string;
+  address: string;
+  addressDetail: string;
+  name: string;
+  owner: string;
+  number: string;
+  employee_count: number;
+  created_at: string;
+}
+
+interface PersonalInfo {
+  gender: string;
+  nickname: string;
+  birth: string;
+  phone: string;
+  store_name: string;
+  joined_at: string;
+  image: string | null;
+  id: number;
+}
 
 const Divider = () => <div className="w-full h-[12px] bg-[#F7F7F8]" />;
 
 export default function Profile() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
-  const [storeOrder, setStoreOrder] = useState([0, 1]);
+  const storeId = location.state?.storeId || Number(localStorage.getItem("currentStoreId"));
   const [editDialog, setEditDialog] = useState<number | null>(null);
   const [switchDialog, setSwitchDialog] = useState<number | null>(null);
   const [logoutDialog, setLogoutDialog] = useState(false);
+  const [info, setInfo] = useState<PersonalInfo>(null);
+  const [stores, setStores] = useState<StoreInfo[]>([]);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const me = await getMe();
+
+      const infoData = await getInfo(me.id, storeId);
+      setInfo(infoData);
+
+      const storeData = await getMyStore(me.id);
+      setStores(storeData);
+    }
+
+    fetchProfile();
+  }, []);
+
+  console.log(info);
+
 
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -51,18 +72,27 @@ export default function Profile() {
 
   const handleSwitchConfirm = (storeIdx: number) => {
     setSwitchDialog(null);
-    setStoreOrder((prev) => {
-      const newOrder = prev.filter((i) => i !== storeIdx);
-      return [storeIdx, ...newOrder];
-    });
+    // setStoreOrder((prev) => {
+    //   const newOrder = prev.filter((i) => i !== storeIdx);
+    //   return [storeIdx, ...newOrder];
+    // });
     toast({ description: "매장이 전환되었어요", duration: 2000 });
   };
 
   const handleLogout = () => {
     setLogoutDialog(false);
+    logout();
     toast({ description: "로그아웃 되었어요", duration: 2000 });
     navigate("/");
   };
+
+  if (!info || !stores) {
+    return (
+      <div className="min-h-screen max-w-[430px] mx-auto flex items-center justify-center">
+        <p className="text-muted-foreground text-sm">불러오는 중...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen max-w-[430px] mx-auto relative font-[Pretendard]" style={{ backgroundColor: '#FFFFFF' }}>
@@ -79,20 +109,24 @@ export default function Profile() {
         {/* Profile Card - 직원 화면 스타일 통일 */}
         <div className="flex items-center gap-4 py-4 px-[20px]">
           <div className="w-[80px] h-[80px] rounded-full overflow-hidden flex-shrink-0 bg-[hsl(240,4.8%,95.9%)]">
-            <img src="https://i.pravatar.cc/150?img=11" alt="프로필" className="w-full h-full object-cover" />
+            <img
+              src={info.image ? getPhotoUrl(info.image) : "/images/default-profile.png"}
+              alt="프로필"
+              className="w-full h-full object-cover"
+            />
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-[10px]">
-              <span className="text-[20px] tracking-[-0.02em] font-bold text-[hsl(240,7%,10%)]">정수민</span>
+              <span className="text-[20px] tracking-[-0.02em] font-bold text-[hsl(240,7%,10%)]">{info.nickname}</span>
               <span className="text-[16px] tracking-[-0.02em] font-normal text-[hsl(223,5%,46%)]">사장님</span>
             </div>
             <div className="mt-1 flex">
               <span className="inline-flex items-center justify-center h-[28px] px-[10px] rounded-[4px] bg-primary/10 text-primary text-[14px] tracking-[-0.02em] font-medium whitespace-nowrap w-auto">
-                컴포즈커피 노량진점 가입 +261일
+                {`${info.store_name} 가입 +${calculateDaysSince(info.joined_at)}일`}
               </span>
             </div>
           </div>
-          <button className="pressable p-2 self-start mt-1" onClick={() => navigate("/owner/profile/edit")}>
+          <button className="pressable p-2 self-start mt-1" onClick={() => navigate("/owner/profile/edit", { state: { info, stores } })}>
             <Pencil className="w-6 h-6 text-muted-foreground" />
           </button>
         </div>
@@ -103,9 +137,9 @@ export default function Profile() {
         <section className="py-5 px-[20px]">
           <h2 className="text-[20px] tracking-[-0.02em] font-bold text-[hsl(210,5%,16%)] mb-4">인적 사항</h2>
           <div className="space-y-3">
-            <InfoRow label="생년월일" value="2001.02.03 (24세)" />
-            <InfoRow label="성별" value="여자" />
-            <InfoRow label="전화번호" value="010-5050-5050" />
+            <InfoRow label="생년월일" value={`${formatDate(info.birth)} (${calcAge(info.birth)}세)`} />
+            <InfoRow label="성별" value={info.gender} />
+            <InfoRow label="전화번호" value={formatPhone(info.phone)} />
           </div>
         </section>
 
@@ -139,33 +173,32 @@ export default function Profile() {
         <section className="py-5 px-[20px]">
           <h2 className="text-[20px] tracking-[-0.02em] font-bold text-[hsl(210,5%,16%)] mb-4">매장 정보</h2>
           <div className="space-y-4">
-            {storeOrder.map((storeIdx, orderPos) => {
-              const store = STORES[storeIdx];
+            {stores.map((store, orderPos) => {
               const isFirst = orderPos === 0;
               return (
-                <div key={store.id} className="border border-border rounded-xl p-4 bg-white">
+                <div key={store.code} className="border border-border rounded-xl p-4 bg-white">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-[15px] font-bold text-[#19191B]">{store.name}</h3>
                     {isFirst ? (
-                      <button onClick={() => setEditDialog(storeIdx)}
+                      <button onClick={() => setEditDialog(0)}
                         className="pressable text-[12px] text-primary border border-primary rounded-full px-3 py-1 font-medium">
                         수정하기
                       </button>
                     ) : (
-                      <button onClick={() => setSwitchDialog(storeIdx)}
+                      <button onClick={() => setSwitchDialog(orderPos)}
                         className="pressable text-[12px] text-muted-foreground border border-border rounded-full px-3 py-1 font-medium">
                         매장 전환 ↔
                       </button>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <StoreInfoRow label="매장 코드" value={store.code} isLink onCopy={() => handleCopyCode(store.code)} />
-                    <StoreInfoRow label="업종" value={store.category} />
-                    <StoreInfoRow label="주소" value={store.address} />
-                    <StoreInfoRow label="대표자명" value={store.ceo} />
-                    <StoreInfoRow label="대표 번호" value={store.phone} />
-                    <StoreInfoRow label="총 직원 수" value={store.staffCount} />
-                    <StoreInfoRow label="개업일" value={store.openDate} />
+                    <StoreInfoRow label="매장 코드" value={String(store.code)} isLink onCopy={() => handleCopyCode(String(store.code))} />
+                    <StoreInfoRow label="업종" value={store.industry} />
+                    <StoreInfoRow label="주소" value={`${store.address} ${store.addressDetail ?? ""}`.trim()} />
+                    <StoreInfoRow label="대표자명" value={store.owner} />
+                    <StoreInfoRow label="대표 번호" value={store.number} />
+                    <StoreInfoRow label="총 직원 수" value={`${store.employee_count}명`} />
+                    <StoreInfoRow label="가입일" value={formatDate(store.created_at)} />
                   </div>
                 </div>
               );
@@ -196,7 +229,7 @@ export default function Profile() {
         open={editDialog !== null}
         onOpenChange={(open) => !open && setEditDialog(null)}
         title="매장 정보 수정하기"
-        description={editDialog !== null ? `${STORES[editDialog].name}\n매장 정보를 수정하시겠어요?` : ""}
+        description={editDialog !== null ? `${stores[editDialog].name}\n매장 정보를 수정하시겠어요?` : ""}
         buttons={[
           { label: "취소", variant: "cancel", onClick: () => setEditDialog(null) },
           { label: "수정하기", variant: "confirm", onClick: handleEditConfirm },
@@ -206,7 +239,7 @@ export default function Profile() {
         open={switchDialog !== null}
         onOpenChange={(open) => !open && setSwitchDialog(null)}
         title="매장 전환하기"
-        description={switchDialog !== null ? `${STORES[switchDialog].name}으로\n매장을 전환하시겠어요?` : ""}
+        description={switchDialog !== null ? `${stores[switchDialog].name}으로\n매장을 전환하시겠어요?` : ""}
         buttons={[
           { label: "취소", variant: "cancel", onClick: () => setSwitchDialog(null) },
           { label: "전환하기", variant: "confirm", onClick: () => switchDialog !== null && handleSwitchConfirm(switchDialog) },

@@ -8,10 +8,10 @@ from pathlib import Path
 from dotenv import load_dotenv
 import uuid
 
-from models import BusinessRequest, Store, StoreSetting, StorePart
+from models import BusinessRequest, Store, StoreSetting, StorePart, StoreMembers, StoreMembersDetail, Member
 from database import get_db, SessionLocal
 from schemas.login import StoreInfo
-from schemas.owner import setStoreInfoSchemas
+from schemas.owner import setStoreInfoSchemas, returnMyStoresSchemas, updateNicknameSchemas
 
 ENV_PATH = Path(__file__).resolve().parent.parent.parent / ".env"
 load_dotenv(ENV_PATH)
@@ -202,6 +202,149 @@ async def update_attendance_standard(
 
     db.commit()
     return {"ok": True}
+
+@router.get("/store/{store_id}/staffs")
+async def get_staff_list(store_id: int, db: Session = Depends(get_db)):
+    """
+    ----------------------------------------
+    매장별 직원 조회 API
+    ----------------------------------------
+    """
+
+    staff = (
+        db.query(StoreMembers)
+        .options(
+            joinedload(StoreMembers.detail),
+            joinedload(StoreMembers.member)
+        )
+        .filter(StoreMembers.store_id == store_id, StoreMembers.role == "employee")
+        .all()
+    )
+    
+    result = []
+    for s in staff:
+        result.append({
+            "id": s.id,
+            "store_id": s.store_id,
+            "member_id": s.member_id,
+            "role": s.role,
+            "bank": s.bank,
+            "accountNumber": s.accountNumber,
+            "image_url": s.image_url,
+            "joined_at": s.joined_at,
+            "name": s.member.name if s.member else None,
+            "phone": s.member.phone if s.member else None,
+            "birth": str(s.member.birth) if s.member and s.member.birth else None,
+            "gender": s.member.gender if s.member else None,
+            "member_image_url": s.member.image_url if s.member else None,
+            "detail": {
+                "employee_type": s.detail.employee_type if s.detail else None,
+                "working_status": s.detail.working_status if s.detail else None,
+                "salary_cycle": s.detail.salary_cycle if s.detail else None,
+                "hourly_rate": s.detail.hourly_rate if s.detail else None,
+                "memo": s.detail.memo if s.detail else None,
+                "resume": s.detail.resume if s.detail else None,
+                "employment_contract": s.detail.employment_contract if s.detail else None,
+                "health_certificate": s.detail.health_certificate if s.detail else None,
+            } if s.detail else None,
+        })
+
+    return result
+
+
+@router.get("/mypage/{member_id}/stores", response_model=list[returnMyStoresSchemas])
+async def get_my_stores(member_id: int, db: Session = Depends(get_db)):
+    """
+    ----------------------------------------
+    사장 내 정보 페이지 내 매장 정보 조회 API
+    ----------------------------------------
+    """
+    store_members = db.query(StoreMembers).filter(
+        StoreMembers.role == "owner",
+        StoreMembers.member_id == member_id
+    ).all()
+    
+    store_ids = [sm.store_id for sm in store_members]
+    stores = db.query(Store).filter(Store.id.in_(store_ids)).all()
+
+    result = []
+    for store in stores:
+        employee_count = db.query(StoreMembers).filter(
+            StoreMembers.store_id == store.id,
+            StoreMembers.role == "employee"
+        ).count()
+        
+        store_dict = {
+            "id": store.id,
+            "code": store.code,
+            "industry": store.industry,
+            "address": store.address,
+            "addressDetail": store.addressDetail,
+            "name": store.name,
+            "owner": store.owner,
+            "number": store.number,
+            "employee_count": employee_count,
+            "created_at": store.created_at
+        }
+        result.append(store_dict)
+
+    return result
+
+
+@router.get("/mypage/{member_id}/info")
+async def get_my_stores(member_id: int, store_id: int, db: Session = Depends(get_db)):
+    """
+    ----------------------------------------
+    사장 내 정보 페이지 내 인적사항 조회 API
+    ----------------------------------------
+    """
+
+    info = (
+        db.query(StoreMembers, Member, Store)
+        .join(Member, Member.id == StoreMembers.member_id)
+        .join(Store, Store.id == StoreMembers.store_id)
+        .filter(
+            StoreMembers.member_id == member_id,
+            StoreMembers.store_id == store_id
+        )
+        .first()
+    )
+
+    store_member, member, store = info
+    gender_kr = "여자" if member.gender == "female" else "남자"
+
+    return {
+        "id": store_member.id,
+        "nickname": store_member.nickname,
+        "birth": str(member.birth) if member.birth else None,
+        "gender": gender_kr,
+        "phone": member.phone,
+        "joined_at": str(store_member.joined_at),
+        "store_name": store.name,
+        "image": store_member.image_url
+    }
+
+@router.put("/mypage/{store_id}/nickname")
+async def update_nickname(
+    store_id: int , 
+    body: updateNicknameSchemas, 
+    db: Session = Depends(get_db)):
+    """
+    ----------------------------------------
+    사장 내 정보 페이지 내 닉네임 수정 API
+    ----------------------------------------
+    """
+
+    print(body, store_id)
+
+    info = db.query(StoreMembers).filter(StoreMembers.store_id == store_id, StoreMembers.id == body.member_id).first()
+
+    info.nickname = body.nickname
+
+    db.commit()
+    db.refresh(info)
+
+    return info
 
 # TODO: 직원 스케줄(근무표) 변경요청 수락 시, StoreMemberWork 업데이트 진행.
 # TODO: 매장 공지사항 작성 시, Notification에 데이터 추가. employee_id는 해당 매장에 재직 중인 모두

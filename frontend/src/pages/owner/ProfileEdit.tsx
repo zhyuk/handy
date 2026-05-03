@@ -1,49 +1,37 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, Plus, X } from "lucide-react";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useToast } from "@/hooks/use-toast";
+import { calcAge, calculateDaysSince, formatDate, formatPhone, updateNickname } from "@/api/owner/mypage";
+import { getPhotoUrl } from "@/utils/function";
 
-const STORES = [
-  {
-    id: 1,
-    name: "컴포즈커피 노량진점",
-    code: "123456",
-    category: "음식/카페",
-    address: "서울특별시 동작구 노량진동 89-9 1층",
-    ceo: "김준서",
-    phone: "02-1234-5678",
-    staffCount: "21명",
-    openDate: "2023.11.22",
-  },
-  {
-    id: 2,
-    name: "컴포즈커피 노량진점",
-    code: "456789",
-    category: "음식/카페",
-    address: "서울특별시 동작구 노량진동 89-9 1층",
-    ceo: "김준서",
-    phone: "02-1234-5678",
-    staffCount: "21명",
-    openDate: "2023.11.22",
-  },
-];
 
 const Divider = () => <div className="w-full h-[12px] bg-[#F7F7F8]" />;
 
 export default function ProfileEdit() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
-  const [name, setName] = useState("정수민");
+  const info = location.state?.info;
+  const storeId = location.state?.storeId || Number(localStorage.getItem("currentStoreId"));
+  const stores = location.state?.stores;
+  const [name, setName] = useState(info.nickname);
   const [photoSheetOpen, setPhotoSheetOpen] = useState(false);
   const [nameSheetOpen, setNameSheetOpen] = useState(false);
   const [nameInput, setNameInput] = useState("");
 
-  const handleNameSave = () => {
-    if (nameInput.trim()) {
-      setName(nameInput.trim());
-      setNameSheetOpen(false);
-      toast({ description: "이름이 변경되었어요", duration: 2000 });
+  const handleNameSave = async () => {
+    const trimmed = nameInput.trim();
+    if (trimmed) {
+      try {
+        setName(trimmed);
+        await updateNickname(storeId, trimmed, info.id);
+        setNameSheetOpen(false);
+        toast({ description: "이름이 변경되었어요", duration: 2000 });
+      } catch {
+        toast({ description: "이름 변경에 실패했어요", variant: "destructive", duration: 2000 });
+      }
     }
   };
 
@@ -51,6 +39,16 @@ export default function ProfileEdit() {
     navigator.clipboard.writeText(code);
     toast({ description: "매장코드가 복사되었어요", duration: 2000 });
   };
+
+  console.log(info);
+
+  if (!info || !stores) {
+    return (
+      <div className="min-h-screen max-w-[430px] mx-auto flex items-center justify-center">
+        <p className="text-muted-foreground text-sm">불러오는 중...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen max-w-[430px] mx-auto bg-white font-[Pretendard] relative">
@@ -68,7 +66,11 @@ export default function ProfileEdit() {
         <div className="flex items-center gap-4 py-6 px-5">
           <div className="relative">
             <div className="w-[80px] h-[80px] rounded-full bg-[#F7F7F8] overflow-hidden border border-[#EEEEF0]">
-              <img src="https://i.pravatar.cc/150?img=11" alt="프로필" className="w-full h-full object-cover" />
+              <img
+                src={info.image ? getPhotoUrl(info.image) : "/images/default-profile.png"}
+                alt="프로필"
+                className="w-full h-full object-cover"
+              />
             </div>
             <button
               onClick={() => setPhotoSheetOpen(true)}
@@ -84,7 +86,7 @@ export default function ProfileEdit() {
             </div>
             <div className="mt-1">
               <span className="inline-flex items-center justify-center px-3 h-[28px] rounded-[4px] bg-[#4261FF]/10 text-[#4261FF] text-[14px] font-medium tracking-[-0.02em]">
-                컴포즈커피 노량진점 가입 +261일
+                {`${info.store_name} 가입 +${calculateDaysSince(info.joined_at)}일`}
               </span>
             </div>
           </div>
@@ -106,9 +108,9 @@ export default function ProfileEdit() {
                 <span className="text-[#ADB1BA] text-[14px]">변경</span>
               </button>
             </div>
-            <InfoRow label="생년월일" value="2001.02.03 (24세)" />
-            <InfoRow label="성별" value="여자" />
-            <InfoRow label="전화번호" value="010-5050-5050" />
+            <InfoRow label="생년월일" value={`${formatDate(info.birth)} (${calcAge(info.birth)}세)`} />
+            <InfoRow label="성별" value={info.gender} />
+            <InfoRow label="전화번호" value={formatPhone(info.phone)} />
           </div>
         </section>
 
@@ -131,7 +133,7 @@ export default function ProfileEdit() {
         <section className="py-5 px-5">
           <h2 className="text-[20px] font-bold tracking-[-0.02em] text-[#19191B] mb-4">매장 정보</h2>
           <div className="space-y-4">
-            {STORES.map((store) => (
+            {stores.map((store) => (
               <div key={store.id} className="border border-[#EEEEF0] rounded-2xl p-5 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-[16px] font-bold text-[#19191B]">{store.name}</h3>
@@ -144,12 +146,12 @@ export default function ProfileEdit() {
                 </div>
                 <div className="space-y-2.5">
                   <StoreInfoRow label="매장 코드" value={store.code} isLink onCopy={() => handleCopyCode(store.code)} />
-                  <StoreInfoRow label="업종" value={store.category} />
+                  <StoreInfoRow label="업종" value={store.industry} />
                   <StoreInfoRow label="주소" value={store.address} />
-                  <StoreInfoRow label="대표자명" value={store.ceo} />
-                  <StoreInfoRow label="대표 번호" value={store.phone} />
-                  <StoreInfoRow label="총 직원 수" value={store.staffCount} />
-                  <StoreInfoRow label="개업일" value={store.openDate} />
+                  <StoreInfoRow label="대표자명" value={store.owner} />
+                  <StoreInfoRow label="대표 번호" value={store.number} />
+                  <StoreInfoRow label="총 직원 수" value={`${store.employee_count}명`} />
+                  <StoreInfoRow label="가입일" value={formatDate(store.created_at)} />
                 </div>
               </div>
             ))}
