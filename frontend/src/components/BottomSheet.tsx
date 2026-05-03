@@ -9,13 +9,14 @@ interface BottomSheetProps {
   children: ReactNode;
 }
 
-export const BottomSheet = ({ isOpen, onClose, title, children }: BottomSheetProps) => {
+const BottomSheet = ({ isOpen, onClose, title, children }: BottomSheetProps) => {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
     }
+
     return () => {
       document.body.style.overflow = 'unset';
     };
@@ -27,38 +28,37 @@ export const BottomSheet = ({ isOpen, onClose, title, children }: BottomSheetPro
     <div className="fixed inset-0 z-50">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-foreground/40 animate-fade-in"
+        className="absolute inset-0 bg-foreground/40"
         onClick={onClose}
       />
-      
+
       {/* Sheet */}
       <div
         className={cn(
-          'absolute bottom-0 left-0 right-0 bg-card rounded-t-2xl bottom-sheet-shadow animate-slide-up',
-          'max-h-[70vh] flex flex-col'
+          "absolute bottom-0 left-0 right-0 bg-background rounded-t-[20px] pb-8",
+          "animate-[slideUp_0.3s_ease-out]"
         )}
       >
         {/* Handle bar */}
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 bg-muted rounded-full" />
+        <div className="flex justify-center pt-3 pb-2">
+          <div className="w-10 h-1 bg-border rounded-full" />
         </div>
-        
+
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-border">
-          <h3 className="text-lg font-semibold text-foreground">{title}</h3>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-full hover:bg-muted transition-colors"
-          >
-            <X className="w-5 h-5 text-muted-foreground" />
+        <div className="flex items-center justify-between px-6 py-3">
+          <h3 className="text-base font-semibold text-foreground">{title}</h3>
+          <button onClick={onClose} className="p-1 text-muted-foreground">
+            <X size={22} />
           </button>
         </div>
-        
+
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div className="px-6">
           {children}
         </div>
       </div>
     </div>
   );
 };
+
+export default BottomSheet;

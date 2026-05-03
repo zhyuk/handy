@@ -95,3 +95,13 @@ logs/
 *.stackdump
 *.manifest
 *.spec
+
+
+#################################################
+# Backend
+#################################################
+backend/app/firebase-service-account.json
+backend/*.pem
+
+*.pem
+cert/

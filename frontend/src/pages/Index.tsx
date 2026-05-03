@@ -1,118 +1,74 @@
-import { useNavigate } from 'react-router-dom';
-import { Users, Calendar, FileText, User } from 'lucide-react';
-import { BottomNav } from '@/components/BottomNav';
-import OpenCamera from '@/components/OpenCamera';
-import GpsTest from '@/components/GpsTest';
-import { useEffect } from 'react';
-import { initPush } from '@/utils/push';
+import { useState } from "react";
+import { Store, HardHat } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
+const memberTypes = [
+  {
+    id: "owner",
+    title: "사장 회원",
+    description: "핸디에 매장을 등록하실\n사장님이라면 선택해 주세요.",
+    icon: Store,
+    iconBg: "bg-accent",
+    navigation: "/owner/business-verify"
+  },
+  {
+    id: "staff",
+    title: "직원 회원",
+    description: "핸디를 사용중인 매장의\n직원이라면 선택해 주세요.",
+    icon: HardHat,
+    iconBg: "bg-accent",
+    navigation: "/employee/business-verify"
+  },
+] as const;
 
 const Index = () => {
   const navigate = useNavigate();
 
-  const menuItems = [
-    {
-      icon: Users,
-      title: '직원 관리',
-      description: '직원 정보를 관리하세요',
-      path: '/employees',
-      color: 'bg-primary/10 text-primary',
-    },
-    {
-      icon: Calendar,
-      title: '일정 관리',
-      description: '근무 일정을 확인하세요',
-      path: '/schedule',
-      color: 'bg-status-open/10 text-status-open',
-    },
-    {
-      icon: FileText,
-      title: '게시판',
-      description: '공지사항을 확인하세요',
-      path: '/board',
-      color: 'bg-status-middle/10 text-status-middle',
-    },
-    {
-      icon: User,
-      title: '내 정보',
-      description: '프로필을 관리하세요',
-      path: '/profile',
-      color: 'bg-muted text-muted-foreground',
-    },
-  ];
-
-  useEffect(() => {
-    initPush();
-  }, []);
-
+  const [selected, setSelected] = useState<string | null>(null);
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      {/* Header */}
-      <header className="px-4 py-6 border-b border-border">
-        <h1 className="text-2xl font-bold text-foreground">안녕하세요 👋</h1>
-        <p className="text-muted-foreground mt-1">오늘도 좋은 하루 되세요</p>
-      </header>
+    <div className="min-h-screen bg-background px-6 pt-16 pb-8">
+      <div className="mb-2">
+        <h1 className="text-2xl font-bold leading-tight text-foreground">
+          회원 유형을
+          <br />
+          선택해 주세요
+        </h1>
+        <p className="mt-3 text-sm text-muted-foreground">
+          서비스 이용을 위해 회원 유형을 선택해 주세요
+        </p>
+      </div>
 
-      {/* Quick Stats */}
-      <section className="px-4 py-4">
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-card rounded-xl p-4 card-shadow">
-            <p className="text-sm text-muted-foreground">전체 직원</p>
-            <p className="text-2xl font-bold text-foreground mt-1">12명</p>
-          </div>
-          <div className="bg-card rounded-xl p-4 card-shadow">
-            <p className="text-sm text-muted-foreground">오늘 근무</p>
-            <p className="text-2xl font-bold text-primary mt-1">4명</p>
-          </div>
-        </div>
-      </section>
-
-      <OpenCamera />
-
-      <GpsTest />
-
-
-      {/* Menu Grid */}
-      <section className="px-4 py-4">
-        <h2 className="text-lg font-semibold text-foreground mb-3">빠른 메뉴</h2>
-        <div className="grid grid-cols-2 gap-3">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.path}
-                onClick={() => navigate(item.path)}
-                className="bg-card rounded-xl p-4 card-shadow text-left hover:shadow-md transition-shadow"
-              >
-                <div className={`w-10 h-10 rounded-lg ${item.color} flex items-center justify-center mb-3`}>
-                  <Icon className="w-5 h-5" />
-                </div>
-                <h3 className="font-semibold text-foreground">{item.title}</h3>
-                <p className="text-sm text-muted-foreground mt-0.5">{item.description}</p>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* Recent Notifications */}
-      <section className="px-4 py-4">
-        <h2 className="text-lg font-semibold text-foreground mb-3">최근 알림</h2>
-        <div className="bg-card rounded-xl p-4 card-shadow">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-badge-new-bg flex items-center justify-center">
-              <Users className="w-5 h-5 text-status-new" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">가입 요청 2건</p>
-              <p className="text-xs text-muted-foreground">새로운 직원 가입 요청이 있습니다</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <BottomNav currentPath="/" />
+      <div className="mt-8 flex flex-col gap-4">
+        {memberTypes.map((type) => {
+          const isSelected = selected === type.id;
+          return (
+            <button
+              key={type.id}
+              onClick={() => navigate(type.navigation)}
+              className={`flex items-center gap-5 rounded-2xl border-2 p-5 text-left transition-all ${isSelected
+                ? "border-primary bg-primary/5"
+                : "border-border bg-card"
+                }`}
+            >
+              <div className={`flex h-20 w-20 shrink-0 items-center justify-center rounded-full ${type.iconBg}`}>
+                <type.icon className="h-9 w-9 text-accent-foreground" />
+              </div>
+              <div>
+                <h2
+                  className={`text-lg font-bold ${isSelected ? "text-primary" : "text-foreground"
+                    }`}
+                >
+                  {type.title}
+                </h2>
+                <p className="mt-1 whitespace-pre-line text-sm text-muted-foreground">
+                  {type.description}
+                </p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 };

@@ -1,92 +1,172 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* HR Management App Design System - Korean Style */
+/* Hide scrollbars globally */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+}
 
 @layer base {
+
+  html,
+  body,
+  * {
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    line-height: 1.4;
+    letter-spacing: -0.02em;
+  }
+
   :root {
-    --background: 0 0% 98%;
-    --foreground: 220 13% 18%;
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 13% 18%;
+    --card-foreground: 222.2 84% 4.9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 13% 18%;
+    --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 217 91% 60%;
+    --primary: 231 100% 63%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 220 13% 18%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 217 91% 60%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 217 91% 60%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 243 75% 59%;
 
     --radius: 0.75rem;
 
     /* Status colors */
-    --status-new: 217 91% 60%;
-    --status-open: 142 71% 45%;
-    --status-middle: 45 93% 47%;
-    --status-closed: 220 9% 46%;
+    --status-green: 155 85% 43%;
+    --status-green-light: 141 63% 94%;
+    --status-orange: 25 100% 59%;
+    --status-orange-light: 25 100% 94%;
+    --status-blue: 230 100% 63%;
+    --status-red: 0 100% 62%;
+    --status-gray: 220 13% 91%;
+    --status-gray-text: 220 9% 46%;
+    --status-late: 25 100% 59%;
+    --status-late-light: 25 100% 94%;
+    --status-absent: 0 100% 62%;
+    --status-absent-light: 10 100% 95%;
+    --status-purple: 271 65% 60%;
+    --status-purple-light: 270 80% 96%;
 
-    /* Badge backgrounds */
-    --badge-new-bg: 217 91% 95%;
-    --badge-open-bg: 142 71% 95%;
-    --badge-middle-bg: 45 93% 95%;
-    --badge-closed-bg: 220 14% 96%;
+    /* Shift colors */
+    --shift-open: 42 100% 50%;
+    --shift-open-bg: 52 88% 93%;
+    --shift-middle: 152 76% 49%;
+    --shift-middle-bg: 136 100% 96%;
+    --shift-close: 195 96% 53%;
+    --shift-close-bg: 196 100% 95%;
+
+    /* Schedule calendar tokens */
+    --schedule-cal-open: 155 85% 43%;
+    --schedule-cal-open-bg: 141 63% 94%;
+    --schedule-cal-middle: 42 100% 50%;
+    --schedule-cal-middle-bg: 52 88% 93%;
+    --schedule-cal-close: 195 96% 53%;
+    --schedule-cal-close-bg: 196 100% 95%;
+    --schedule-cal-vacation: 220 9% 46%;
+    --schedule-cal-vacation-bg: 220 13% 95%;
+    --schedule-cal-today: 231 100% 57%;
+
+    /* Schedule tokens */
+    --schedule-date-range: 213 18% 73%;
+    --schedule-sat: 209 100% 68%;
+    --schedule-sun: 0 100% 68%;
+    --schedule-day: 210 6% 17%;
+    --schedule-shift-bg: 240 3% 97%;
+    --schedule-shift-text: 233 4% 47%;
+    --schedule-time: 213 5% 60%;
+
+    /* Notification */
+    --notification-bg: 231 100% 97%;
+
+    /* Badge */
+    --badge-owner: 231 100% 63%;
+    --badge-staff: 220 9% 76%;
+
+    /* Role badge */
+    --role-badge: 231 100% 57%;
+    --role-badge-foreground: 0 0% 100%;
+
+    /* Notice card */
+    --notice-card-bg: 222 100% 93%;
+    --notice-author: 0 0% 55%;
+    --notice-time: 0 0% 70%;
+    --notice-content: 240 7% 10%;
+
+    /* Progress */
+    --progress-green: 160 84% 39%;
+    --progress-break: 243 75% 59%;
+    --progress-late: 40 96% 56%;
+
+    /* Toast */
+    --toast-bg: 220 10% 30%;
+    --toast-foreground: 0 0% 100%;
+
+    /* Checklist */
+    --checklist-active: 158 83% 42%;
+    --checklist-divider: 228 4% 87%;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
-    --background: 220 13% 10%;
-    --foreground: 0 0% 98%;
-
-    --card: 220 13% 14%;
-    --card-foreground: 0 0% 98%;
-
-    --popover: 220 13% 14%;
-    --popover-foreground: 0 0% 98%;
-
-    --primary: 217 91% 60%;
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 231 100% 63%;
     --primary-foreground: 0 0% 100%;
-
-    --secondary: 220 13% 20%;
-    --secondary-foreground: 0 0% 98%;
-
-    --muted: 220 13% 20%;
-    --muted-foreground: 220 9% 65%;
-
-    --accent: 217 91% 60%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 62% 50%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 220 13% 25%;
-    --input: 220 13% 25%;
-    --ring: 217 91% 60%;
-
-    --status-new: 217 91% 60%;
-    --status-open: 142 71% 45%;
-    --status-middle: 45 93% 47%;
-    --status-closed: 220 9% 65%;
-
-    --badge-new-bg: 217 91% 20%;
-    --badge-open-bg: 142 71% 20%;
-    --badge-middle-bg: 45 93% 20%;
-    --badge-closed-bg: 220 13% 25%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
 
@@ -96,21 +176,144 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
-    font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Pretendard Variable', Pretendard, 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+    @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.4;
+    letter-spacing: -0.02em;
+  }
+
+  #root {
+    min-height: 100%;
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+
+  input.focus-ring:focus,
+  textarea.focus-ring:focus {
+    outline: none;
+    box-shadow: 0 0 0 1px #4261FF;
+    border-color: #4261FF;
+  }
+
+  /* 공통 포커스 라인 */
+  input:focus:not([class*="focus-ring"]):not([type="file"]):not([type="checkbox"]):not([type="radio"]):not([data-no-focus]),
+  textarea:focus:not([class*="focus-ring"]):not([data-no-focus]) {
+    outline: none;
+    box-shadow: 0 0 0 1px #4261FF;
+    border-color: #4261FF !important;
+  }
+
+  [role="combobox"]:focus,
+  [role="listbox"]:focus,
+  [contenteditable="true"]:focus,
+  .select-trigger:focus,
+  .select-trigger:active {
+    outline: none !important;
+    border-color: hsl(var(--primary)) !important;
+    box-shadow: 0 0 0 1px hsl(var(--primary)) !important;
+  }
+
+  .select-trigger--active {
+    border-color: hsl(var(--primary)) !important;
+    box-shadow: 0 0 0 1px hsl(var(--primary)) !important;
   }
 }
 
 @layer utilities {
-  .card-shadow {
-    box-shadow: 0 1px 3px 0 hsl(220 13% 18% / 0.05), 0 1px 2px -1px hsl(220 13% 18% / 0.05);
+
+  /* pressable: 버튼/클릭요소 active 효과 */
+  .pressable {
+    transition: transform 150ms ease, opacity 150ms ease;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
   }
 
-  .card-shadow-md {
-    box-shadow: 0 4px 6px -1px hsl(220 13% 18% / 0.08), 0 2px 4px -2px hsl(220 13% 18% / 0.05);
+  .pressable:active {
+    transform: scale(0.96);
+    opacity: 0.80;
   }
 
-  .bottom-sheet-shadow {
-    box-shadow: 0 -4px 20px -2px hsl(220 13% 18% / 0.1);
+  /* 페이지 전환: 오른쪽에서 슬라이드 인 */
+  @keyframes page-slide-in {
+    from {
+      opacity: 0;
+      transform: translateX(40px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes page-fade-in {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes page-fade-out {
+    from {
+      opacity: 1;
+    }
+
+    to {
+      opacity: 0;
+    }
+  }
+
+  .page-enter {
+    animation: page-slide-in 280ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  .page-fade-enter {
+    animation: page-fade-in 200ms ease both;
+  }
+
+  .page-fade-exit {
+    animation: page-fade-out 200ms ease both;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scroll-snap-x {
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .snap-start {
+    scroll-snap-align: start;
+  }
+
+  .snap-center {
+    scroll-snap-align: center;
   }
 }

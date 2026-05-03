@@ -5,7 +5,14 @@ const config: CapacitorConfig = {
   appName: 'handy',
   webDir: 'dist',
   server: {
-    androidScheme: 'https'
+    androidScheme: 'http',  // ** SSL 인증서 붙이기 전까지만 유지 **
+    cleartext: true,
+    // url: 'http://10.0.2.2:8000'  // **[배포 시 삭제필요]**
+  },
+  plugins: {
+    PushNotifications: {
+      presentationOptions: ["badge", "sound", "alert"]
+    }
   }
 };
 

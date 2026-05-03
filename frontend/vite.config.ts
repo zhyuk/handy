@@ -6,9 +6,14 @@ import path from "path";
 export default defineConfig(({ mode }) => ({
   server: {
     host: '0.0.0.0',
+    allowedHosts: ['local.handy.com'],
     proxy: {
       '/api': {
         target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/app': {
+        target: 'http://10.0.2.2:8000',
         changeOrigin: true,
       }
     },
